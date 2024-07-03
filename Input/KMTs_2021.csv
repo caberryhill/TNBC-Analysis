@@ -1,0 +1,140 @@
+Uniprot ID,Ensembl ID,Protein Name,Gene Name,Gene Name Aliases,,,Substrates Reported on Uniprot (January 2021),"Uniprot Reported
+ Substrates Category ",Reported substrates on ChromoHub (January 2021),"Chromohub Reported 
+Substrates Category "
+Q9NR48,ENSG00000116539 ,Histone-lysine N-methyltransferase ASH1L,ASH1L,"KIAA1420, KMT2H",,,"-H3K36me3 
+-H3K9me1 (by similarity)",Histone ,"-H3K4
+-H3K36",Histone 
+Q9UBL3,ENSG00000129691,Set1/Ash2 histone methyltransferase complex subunit ASH2,ASH2L,ASH2L1,,,"Component of the Set1/Ash2 histone methyltransferase (HMT) complex, a complex that specifically methylates 'Lys-4' of histone H3, but not if the neighboring 'Lys-9' residue is already methylated (PubMed:19556245). As part of the MLL1/MLL complex it is involved in methylation and dimethylation at 'Lys-4' of histone H3 (PubMed:19556245)",Histone,,
+Q7Z624,ENSG00000143919,Calmodulin-lysine N-methyltransferase,CAMKMT,"C2orf34, CLNMT",,,Catalyzes the trimethylation of 'Lys-116' in calmodulin,Non-histone ,Calmodulin,Non-histone
+Q8TEK3,ENSG00000104885,"Histone-lysine N-methyltransferase, H3 lysine-79 specific",DOT1L,"KIAA1814, KMT4 ",,, H3K79,Histone ,H3K79,Histone 
+Q96G04,ENSG00000118894,Protein-lysine N-methyltransferase EEF2KMT,EEF2KMT,"FAM86A, SB153",,,Catalyzes the trimethylation of eukaryotic elongation factor 2 (EEF2) on 'Lys-525,Non-histone ,eEF2,Non-histone
+Q8IXQ9,ENSG00000139160,Electron transfer flavoprotein beta subunit lysine methyltransferase,ETFBKMT,"C12orf72, METTL20 ",,,Trimethylates the flavoprotein ETFB in mitochondria,Non-histone ,ETFbeta,Non-histone
+Q92800,ENSG00000108799,Histone-lysine N-methyltransferase EZH1,EZH1,KIAA0388 ,,,"- Catalytic subunit of the PRC2/EED-EZH1 complex, which methylates 'Lys-27' of histone H3
+- H3K27me1, H3K27me2 and H3K27me3",Histone ,H3K27,Histone 
+Q15910,ENSG00000106462 ,Histone-lysine N-methyltransferase EZH2,EZH2,KMT6 ,,,"-Catalytic subunit of the PRC2/EED-EZH2 complex, which methylates 'Lys-9' (H3K9me) and 'Lys-27' (H3K27me) of histone H3
+'- H3K27me1, H3K27me2 and H3K27me3
+-Methylates the transcription factor GATA4 and the nuclear receptor RORA. 
+-Histone methylation at the promoter of the circadian genes. 
+-Involved in the di and trimethylation of 'Lys-27' of histone H3 on PER1/2 promoters ",Histone + Non-histone ,H3K27,Histone 
+Q96KQ7,ENSG00000204371,Histone-lysine N-methyltransferase EHMT2,EHMT2,"G9a, BAT8, KMT1C, NG36, c6orf30",,,"-H3K9me1 and H3K9me2 in euchromatin
+-H3K56me1 in G1 phase
+-Weakly methylates H3K27 (K3K27me)
+-May also methylate histone H1. 
+-Dimethylation of 'Lys-373' of p53/TP53.
+-Methylates CDYL, WIZ, ACIN1, DNMT1, HDAC1, ERCC6, KLF12 and itself",Histone + Non-histone ,"-H1.2K187
+-H1.4K26
+-H3K27
+-H3K56
+-H3K9",Histone 
+Q9H9B1,ENSG00000181090,Histone-lysine N-methyltransferase EHMT1,EHMT1,"GLP, EUHMTASE1, KIAA1876, KMT1D",,,"-H3K9me1 and H3K9me2 in euchromatin
+-Weakly methylates 'Lys-27' of histone H3 (H3K27me)
+-Mediates dimethylation of 'Lys-373' of p53/TP53
+",Histone + Non-histone ,"-H1.2K187
+-H3K9",Histone 
+Q9Y5N5,ENSG00000156239,Methyltransferase N6AMT1,N6AMT1,"KMT9, HEMK2, PRED28,  C21orf127",,,"Catalytic subunit of a heterodimer with TRMT112, which monomethylates 'Lys-12' of histone H4 (H4K12me1)
+",Histone ,H4K12,Histone 
+Q8WXB1,ENSG00000144401,Protein N-lysine methyltransferase METTL21A,METTL21A,"FAM119A, HCA557B",,,"-Trimethylates residues in heat shock protein 70 (HSP70) family members
+-Contributes to the in vivo trimethylation of Lys residues in HSPA1 and HSPA8. 
+-In vitro methylates 'Lys-561' in HSPA1, 'Lys-564' in HSPA2, 'Lys-585' in HSPA5, 'Lys-563' in HSPA6 and 'Lys-561' in HSPA8.",Non-histone ,,
+Q96AZ1 ,ENSG00000123427,EEF1A lysine methyltransferase 3,EEF1AKMT3,"METTL21B, FAM119B, HCA557A",,,Methylates EEF1A1 and EEF1A2 at 'Lys-165' in an aminoacyl-tRNA and GTP-dependent manner,Non-histone ,,
+Q5VZV1,ENSG00000139780,Protein-lysine methyltransferase METTL21C,METTL21C,C13orf39 ,,,Trimethylation of Valosin-containing protein (VCP) on Lys315 (PMID: 22948820),Non-histone ,,
+Q9BUU2 ,ENSG00000067365,Methyltransferase-like protein 22,METTL22,"C16orf68, LP8272 ",,,In vitro methylates KIN.,Non-histone ,KINN17K135,Non-histone 
+Q5JPI9 ,ENSG00000203791,EEF1A lysine methyltransferase 2,EEF1AKMT2 ,"C10orf138, METTL10 ",,,Trimethylation of EEF1A at 'Lys-318',Non-histone ,,
+A8MUP2 ,ENSG00000214756,"Citrate synthase-lysine N-methyltransferase CSKMT, mitochondrial",CSKMT ,METTL12 ,,,Protein-lysine methyltransferase that selectively trimethylates citrate synthase (CS) in mitochondria,Non-histone ,H3K4,Histone 
+Q8N6R0,ENSG00000010165,eEF1A lysine and N-terminal methyltransferase,EEF1AKNMT,"KIAA0859, METTL13, CGI-01 ",,,"-Via its N-terminus dimethylates EEF1A1 and EEF1A2 at residue 'Lys-55' 
+-Has no activity towards core histones H2A, H2B, H3 and H4 ",Non-histone ,H3K4,Histone 
+Q9H867,ENSG00000100483 ,Protein-lysine methyltransferase METTL21D,VCPKMT,"METTL21D, C14orf138",,,Trimethylates 'Lys-315' of VCP/p97,Non-histone ,H3K4,Histone 
+Q03164,ENSG00000118058,Histone-lysine N-methyltransferase 2A,KMT2A,"MLL1, CXXC7, HRX, HTRX, ALL1, TRX1, MLL",,,"Catalytic subunit of the MLL1/MLL complex, a multiprotein complex that mediates methylation of 'Lys-4' of histone H3 (H3K4me)",Histone,H3K4,Histone 
+O14686 ,ENSG00000167548,Histone-lysine N-methyltransferase 2D,KMT2D,"MLL2, ALR,  MLL4 ",,,Methylates 'Lys-4' of histone H3 (H3K4me),Histone ,H3K27,Histone 
+Q8NEZ4,ENSG00000055609 ,Histone-lysine N-methyltransferase 2C,KMT2C,"MLL3, HALR,  KIAA1506",,,Methylates 'Lys-4' of histone H3,Histone ,H3K36,Histone 
+Q9UMN6,ENSG00000272333,Histone-lysine N-methyltransferase 2B,KMT2B,"MLL4, HRX2, KIAA0304, MLL2,TRX2, WBP7 ",,,"-Methylates 'Lys-4' of histone H3
+-Required during the transcriptionally active period of oocyte growth for the establishment and/or maintenance of bulk H3K4 trimethylation (H3K4me3)",Histone ,H3K36,Histone 
+Q8IZD2,ENSG00000005483,Inactive histone-lysine N-methyltransferase 2E,KMT2E ,MLL5,,,Recruited to E2F1 responsive promoters by HCFC1 where it stimulates tri-methylation of histone H3 at 'Lys-4' ,Histone ,,
+Q96L73,ENSG00000165671,"Histone-lysine N-methyltransferase, H3 lysine-36 specific",NSD1," KMT3B, ARA267",,,H3K36me2,Histone ,H3K9,Histone 
+O96028,ENSG00000109685,Histone-lysine N-methyltransferase NSD2,NSD2,"KIAA1090, MMSET, TRX5, WHSC1",,,"-Dimethylates nucleosomal histone H3 at 'Lys-36' (H3K36me2) 
+-Monomethylates nucleosomal histone H3 at 'Lys-36' (H3K36me) in vitro 
+-Does not trimethylate nucleosomal histone H3 at 'Lys-36' (H3K36me3) ; however, specifically trimethylates histone H3 at 'Lys-36' (H3K36me3) at euchromatic regions in embryonic stem (ES) cells 
+- By regulating the methylation of histone H3 at 'Lys-36' and histone H4 at 'Lys-20' at the IgH locus, involved in TP53BP1 recruitment to the IgH switch region and promotes the transcription of IgA (By similarity).
+
+Isoform 1:
+-Dimethylates nucleosomal histone H3 at 'Lys-36' (H3K36me2)
+
+Isoform 2: 
+-Dimethylates nucleosomal histone H3 at 'Lys-36' (H3K36me2)
+-Methylation of histone H3 at 'Lys-27' is controversial 
+-Mono-, di- or tri-methylates histone H3 at 'Lys-27' (H3K27me, H3K27me2 and H3K27me3) 
+",Histone ,H3K9me1,Histone 
+Q9BZ95 ,ENSG00000147548 ,Histone-lysine N-methyltransferase NSD3,NSD3,"WHSC1L1, DC28 ",,,"- H3K4me2 
+- H3K27me2",Histone,,
+O75626,,PR domain zinc finger protein 1,PRDM1,BLIMP1 ,,,,,,
+Q13029 ,ENSG00000116731,PR domain zinc finger protein 2,PRDM2,"KMT8,RIZ ",,,Methylates 'Lys-9' of histone H3.,Histone,,
+Q03112,ENSG00000085276,Histone-lysine N-methyltransferase MECOM,MECOM  ,"PRDM3, EVI1, MDS1",,,"Isoform 1:
+
+Isoform 7:
+-Monomethylates 'Lys-9' of histone H3 (H3K9me1) in vitro.
+",Histone,,
+Q9UKN5,ENSG00000110851,PR domain zinc finger protein 4,PRDM4,PFM1 ,,,,,,
+Q9NQX1,ENSG00000138738 ,PR domain zinc finger protein 5,PRDM5,PFM2 ,,,,,"-H3K36
+-H3K4",Histone 
+Q9NQX0,ENSG00000061455,Putative histone-lysine N-methyltransferase PRDM6,PRDM6,PFM3 ,,,"- It is unclear whether it has histone methyltransferase activity in vivo. According to some authors, it does not act as a histone methyltransferase by itself and represses transcription by recruiting EHMT2/G9a.
+- According to others, it possesses histone methyltransferase activity when associated with other proteins and specifically methylates 'Lys-20' of histone H4 in vitro.",Controversy,,
+Q9NQW5,ENSG00000126856,Probable histone-lysine N-methyltransferase PRDM7,PRDM7,PFM4,,,,,,
+Q9NQV8,ENSG00000152784�,PR domain zinc finger protein 8,PRDM8,PFM5,,,"-Probable histone methyltransferase, preferentially acting on 'Lys-9' of histone H3 (By similarity)",Histone,,
+Q9NQV7,ENSG00000164256,Histone-lysine N-methyltransferase PRDM9,PRDM9,PFM6,,,"-�Mono-, di-, and tri-methylates both 'Lys-4' (H3K4) and 'Lys-36' (H3K36) of histone H3 to produce respectively trimethylated 'Lys-4' (H3K4me3) and trimethylated 'Lys-36' (H3K36me3) histone H3�
+-Can methylate all four core histones with H3 being the best substrate and the most highly modified
+-Able to mono and di-methylate H4K20 and  trimethylate H3K9 with the di-methylated H3K9 as the best substrate ",Histone,,
+Q9NQV6,ENSG00000170325,PR domain zinc finger protein 10,PRDM10,"PFM7, KIAA1231, TRIS",,,,,,
+Q9NQV5,ENSG00000019485,PR domain-containing protein 11,PRDM11,PFM8,,,,,,
+Q9H4Q4,ENSG00000130711,PR domain zinc finger protein 12,PRDM12,PFM9,,,Involved in the positive regulation of histone H3-K9 dimethylation.,Histone,H3K9me1,Histone 
+Q9H4Q3�,ENSG00000112238�,PR domain zinc finger protein 13,PRDM13,PFM10,,,,Histone,H3K4,Histone 
+Q9GZV8,ENSG00000147596�,PR domain zinc finger protein 14,PRDM14,,,,,,H3K4,Histone 
+P57071,ENSG00000141956,PR domain zinc finger protein 15,PRDM15,"C21orf83, ZNF298",,,,,H3K36,Histone 
+Q9HAZ2,ENSG00000142611�,Histone-lysine N-methyltransferase PRDM16,PRDM16,"PFM13, KIAA1675, MEL1",,,"Monomethylates 'Lys-9' of histone H3 (H3K9me1) in vitro (By similarity)
+",Histone,,
+O15047,ENSG00000099381,Histone-lysine N-methyltransferase SETD1A,SETD1A,"SET1A, KIAA0339, KMT2F, SET1",,,"Methylates 'Lys-4' of histone H3, when part of the SET1 histone methyltransferase (HMT) complex, but not if the neighboring 'Lys-9' residue is already methylated. ",Histone,,
+�Q9UPS6,ENSG00000139718,Histone-lysine N-methyltransferase SETD1B,SETD1B,"KIAA1076, KMT2G, SET1B",,,"-Methylates 'Lys-4' of histone H3, when part of the SET1 histone methyltransferase (HMT) complex, but not if the neighboring 'Lys-9' residue is already methylated.
+-Specifically tri-methylates 'Lys-4' of histone H3 in vitro.",Histone,,
+Q9BYW2,ENSG00000181555�,Histone-lysine N-methyltransferase SETD2,SETD2,"HIF1, HYPB, KIAA1732, KMT3A, SET2,HSPC069",,,"-H3K36me3
+-Trimethylates 'Lys-40' of alpha-tubulins such as TUBA1B (alpha-TubK40me3)
+-Monomethylation of STAT1 at 'Lys-525' ",Histone + Non-histone ,,
+Q86TU7,ENSG00000183576 ,Actin-histidine N-methyltransferase,SETD3,C14orf154,,,"-Protein-histidine N-methyltransferase that specifically mediates methylation of actin at 'His-73' (PubMed:30526847, PubMed:30626964, PubMed:30785395). 
+-Does not have protein-lysine N-methyltransferase activity and probably only catalyzes histidine methylation of actin (PubMed:30626964, PubMed:30785395).
+-Caution:
+Was initially reported to have histone methyltransferase activity and methylate 'Lys-4' and 'Lys-36' of histone H3 (H3K4me and H3K36me) (By similarity). However, this conclusion was based on mass spectrometry data wherin mass shifts were inconsistent with a bona fide methylation event (PubMed:30626964). In vitro, the protein-lysine methyltransferase activity is weak compared to the protein-histidine methyltransferase activity (PubMed:30526847).",Controvery,H3K4,Histone 
+Q9NVD3,ENSG00000185917,SET domain-containing protein 4,SETD4,"C21orf18,  C21orf27",,,,,H4K20,Histone 
+Q9C0A6,ENSG00000168137,Histone-lysine N-methyltransferase SETD5,SETD5,KIAA1757 ,,,"-H3K36me3
+-H3K9me1 in vitro",Histone,,
+Q8TBK2,ENSG00000103037,N-lysine methyltransferase SETD6,SETD6,,,,"-Monomethylates 'Lys-310' of the RELA subunit of NF-kappa-B complex
+-Monomethylates 'Lys-8' of H2AZ (H2AZK8me1)",Histone + Non-histone ,"-H3K27
+-H3K9
+-H3K4",Histone 
+Q8WTS6 ,ENSG00000145391,Histone-lysine N-methyltransferase SETD7,SETD7,"KIAA1717, KMT7, SET7, SET9 ",,,"-H3K4me1
+- Has also methyltransferase activity toward non-histone proteins such as p53/TP53, TAF10, and possibly TAF7 by recognizing 
+and binding the [KR]-[STA]-K in substrate proteins.
+- Monomethylates 'Lys-189' of TAF10, leading to increase the affinity of TAF10 for RNA polymerase II. 
+-Monomethylates 'Lys-372' of p53/TP53, stabilizing p53/TP53 and increasing p53/TP53-mediated transcriptional activation.",Histone + Non-histone ,H3K9,Histone 
+Q9NQR1 ,ENSG00000183955 ,N-lysine methyltransferase KMT5A,KMT5A ,"SETD8, PRSET7, SET07, SET8, SETD8",,,"-H4K20me1
+-Mediates monomethylation of p53/TP53 at 'Lys-382'",Histone + Non-histone ,H3K36,Histone 
+Q8NE22 ,ENSG00000155542,SET domain-containing protein 9,SETD9,C5orf35,,,,,H3K4,Histone 
+Q15047 ,ENSG00000143379,Histone-lysine N-methyltransferase SETDB1,SETDB1,"ESET,  KIAA0067, KMT1E",,,"H3K9me3
+",Histone,"-H3K36
+-H3K4",Histone 
+Q96T68 ,ENSG00000136169 ,Histone-lysine N-methyltransferase SETDB2,SETDB2,"C13orf4, CLLD8, KMT1F ",,,H3K9me3,Histone,H3K4,Histone 
+Q53H47,ENSG00000170364,Histone-lysine N-methyltransferase SETMAR,SETMAR,,,,"-Methylates 'Lys-4' and 'Lys-36' of histone H3.
+- Specifically mediates dimethylation of H3 'Lys-36' at sites of DNA double-strand break",Histone,,
+Q8NB12 ,ENSG00000115593,Histone-lysine N-methyltransferase SMYD1,SMYD1,,,,"Methylates histone H3 at 'Lys-4' (H3K4me), seems able to perform both mono-, di-, and trimethylation.",Histone,,
+Q9NRG4 ,ENSG00000143499,N-lysine methyltransferase SMYD2,SMYD2,,,,"-H3K4me3
+-Monomethylates 'Lys-370' of p53/TP53
+-Monomethylates RB1 at 'Lys-860'",Histone + Non-histone ,H3K9,Histone 
+Q9H7B4,ENSG00000185420,Histone-lysine N-methyltransferase SMYD3,SMYD3,"ZMYND1, ZNFN3A1 ",,,"- Methylates 'Lys-4' of histone H3, inducing di- and tri-methylation, but not monomethylation
+-Methylates 'Lys-5' of histone H4",Histone,H3K9,Histone 
+Q8IYR2 ,ENSG00000186532 ,SET and MYND domain-containing protein 4,SMYD4,KIAA1936,,,,,H4K20,Histone 
+Q6GMV2 ,ENSG00000135632 ,SET and MYND domain-containing protein 5,SMYD5,RAI15,,,,Histone,H4K20,Histone 
+O43463 ,ENSG00000101945,Histone-lysine N-methyltransferase SUV39H1,SUV39H1,"KMT1A, SUV39H ",,,"-Trimethylates 'Lys-9' of histone H3
+-Weakly methylates histone H1 (in vitro).",Histone,,
+Q9H5I1,ENSG00000152455 ,Histone-lysine N-methyltransferase SUV39H2,SUV39H2,KMT1B,,,-Trimethylates 'Lys-9' of histone H3,Histone,,
+Q4FZB7,ENSG00000110066,Histone-lysine N-methyltransferase KMT5B,KMT5B ,"SUV420H1, CGI-85 ",,,"-Methylates monomethylated 'Lys-20' (H4K20me1) and dimethylated 'Lys-20' (H4K20me2) of histone H4 to produce respectively dimethylated 'Lys-20' (H4K20me2) and trimethylated 'Lys-20' (H4K20me3)
+-In vitro also methylates unmodified 'Lys-20' (H4K20me0) of histone H4 and nucleosomes ",Histone,,
+Q86Y97,ENSG00000133247,Histone-lysine N-methyltransferase KMT5C,KMT5C,"SUV420H2, PP7130",,,"-Methylates monomethylated 'Lys-20' (H4K20me1) and dimethylated 'Lys-20' (H4K20me2) of histone H4 to produce respectively dimethylated 'Lys-20' (H4K20me2) and trimethylated 'Lys-20' (H4K20me3) 
+-In vitro also methylates unmodified 'Lys-20' (H4K20me0) of histone H4 and nucleosomes",Histone ,,
+Q8WVE0,,EEF1A lysine methyltransferase 1,EEF1AKMT1,N6AMT2,,,,,,

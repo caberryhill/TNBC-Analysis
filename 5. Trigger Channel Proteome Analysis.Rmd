@@ -1,0 +1,411 @@
+```{r}
+#This script looks at the trigger channel proteome differential proteome and performs WGCNA. Makes heatmap and GO term enrichment.
+```
+
+```{r}
+library(dplyr)
+library(WGCNA)
+library(pheatmap)
+library(clusterProfiler)
+
+trig_df<- read.csv("Input/Trigger_channel_prot_stats_combined reps.csv")
+trig_df<- trig_df[,-c(1)]
+```
+
+
+# WGCNA of the differentially abundant proteins
+## ANOVA Analysis
+```{r}
+trig_df_2<- na.omit(trig_df)
+
+trig_df_2<- trig_df_2[,c(1:17)]
+
+trig_df_2<- as.data.frame(t(trig_df_2))
+
+colnames(trig_df_2)<- trig_df_2[1,]
+trig_df_2<- trig_df_2[-c(1),]
+
+trig_df_2$type<- rownames(trig_df_2)
+
+trig_df_2<- trig_df_2[,c(4312,1:4311)]
+
+trig_df_2$type<- gsub("\\_.*","", trig_df_2$type)
+
+n<- vector()
+
+anova_run<- apply(trig_df_2[,2:ncol(trig_df_2)],2, function(a){
+
+x<- aov(a~type, data = trig_df_2)
+summary(x)
+y<- summary(x)[[1]][["Pr(>F)"]][[1]]
+n<- append(n,y)
+
+return(n)})
+
+trig_df_2<- as.data.frame(t(trig_df_2))
+
+trig_df_2<- trig_df_2[-c(1),]
+
+trig_df_2$anova_pvalue<- anova_run
+
+```
+# Significant Proteins
+
+```{r}
+protein.sig<- trig_df_2%>% filter(anova_pvalue <=0.05)
+protein.sig$Accession<- rownames(protein.sig)
+
+clean_sig<- protein.sig[,c(1:16, 18)]
+rownames(clean_sig)<- clean_sig[,c(17)]
+clean_sig<- clean_sig[,-c(17)]
+
+# Take a quick look at what is in the data set:
+dim(clean_sig)
+names(clean_sig)
+
+```
+## Read in Trait info
+```{r}
+
+datTraits<- read.csv("Input/traits.csv")
+rownames(datTraits)=datTraits[,1];datTraits=datTraits[,-1]
+dim(datTraits);names(datTraits)
+
+```
+## Choosing the Soft Threshold
+```{r}
+
+clean_sig<- clean_sig %>% mutate_if(is.character, as.numeric)
+clean_sig<- as.data.frame(t(clean_sig))
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to=30, by=2))
+# Call the network topology analysis function
+sft = pickSoftThreshold(clean_sig, powerVector = powers, verbose = 5, networkType = "signed")
+# Plot the results:
+svg("Soft power Sig proteins.svg",10,5)
+# sizeGrWindow(9, 5)
+par(mfrow = c(1,2));
+cex1 = 0.9;
+# Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+# this line corresponds to using an R^2 cut-off of h
+abline(h=0.85,col="red")
+# Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+dev.off()
+```
+
+## WGCNA Construction
+```{r}
+softPower = 20;
+net = blockwiseModules(clean_sig, power = softPower, networkType = "signed",
+                       TOMType = "signed", minModuleSize = 30,
+                       reassignThreshold = 0, mergeCutHeight = 0.25,
+                       numericLabels = TRUE, pamRespectsDendro = FALSE,
+                       saveTOMs = TRUE,
+                       saveTOMFileBase = "Example-1 ProDataTOM", 
+                       verbose = 3)
+table(net$colors)
+
+
+# open a graphics window
+svg("Protein Color modules Sig protein.svg",12,9)
+#sizeGrWindow(12, 9)
+# Convert labels to colors for plotting
+mergedColors = labels2colors(net$colors)
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+dev.off()	
+```
+## Modules analysis and protein significant calculations
+```{r}
+moduleLabels = net$colors
+moduleColors = labels2colors(net$colors)
+MEs = net$MEs;
+geneTree = net$dendrograms[[1]];
+
+# Define numbers of genes and samples
+nGenes = ncol(clean_sig);
+nSamples = nrow(clean_sig);
+# Recalculate MEs with color labels
+MEs0 = moduleEigengenes(clean_sig, moduleColors)$eigengenes
+MEs = orderMEs(MEs0)
+moduleTraitCor = cor(MEs, datTraits, use = "p");
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
+```
+
+#Module-trait relationship
+```{r}
+# open a graphics window
+svg("Module square sig protein site.svg",5,6)
+# sizeGrWindow(10,6)
+# Will display correlations and their p-values
+textMatrix =  paste(signif(moduleTraitCor, 2), "\n(",
+                    signif(moduleTraitPvalue, 1), ")", sep = "");
+dim(textMatrix) = dim(moduleTraitCor)
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = names(datTraits),
+               yLabels = names(MEs),
+               ySymbols = names(MEs),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 0.5,
+               zlim = c(-1,1),
+               main = paste("Module-trait relationships"))
+dev.off()
+
+
+```
+
+## Correlated eigenpeptides in modules associated with traits and WGCNA results output
+```{r}
+
+Cancer = as.data.frame(datTraits$Cancer);
+names(Cancer) = "Cancer"
+# names (colors) of the modules
+modNames = substring(names(MEs), 3)
+
+geneModuleMembership = as.data.frame(cor(clean_sig, MEs, use = "p"));
+MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
+names(geneModuleMembership) = paste("MM", modNames, sep="");
+names(MMPvalue) = paste("p.MM", modNames, sep="");
+geneTraitSignificance = as.data.frame(cor(clean_sig, Cancer, use = "p"));
+GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
+names(geneTraitSignificance) = paste("GS.", names(Cancer), sep="");
+names(GSPvalue) = paste("p.GS.", names(Cancer), sep="");
+
+
+# Create the starting data frame
+geneInfo0 = data.frame(Peptides = names(clean_sig),
+                       moduleColor = moduleColors,
+                       geneTraitSignificance,GSPvalue)
+# Order modules by their significance for Cancer
+modOrder = order(-abs(cor(MEs, Cancer, use = "p")));
+# Add module membership information in the chosen order
+for (mod in 1:ncol(geneModuleMembership))
+{
+  oldNames = names(geneInfo0)
+  geneInfo0 = data.frame(geneInfo0, geneModuleMembership[, modOrder[mod]], 
+                         MMPvalue[, modOrder[mod]]);
+  names(geneInfo0) = c(oldNames, paste("MM.", modNames[modOrder[mod]], sep=""),
+                       paste("p.MM.", modNames[modOrder[mod]], sep=""))
+}
+
+geneInfo0<- na.omit(geneInfo0)
+# Order the genes in the geneInfo variable first by module color, then by geneTraitSignificance
+geneOrder = order(geneInfo0$moduleColor, -abs(geneInfo0$GS.Cancer));
+geneInfo_sig = geneInfo0[geneOrder, ]
+#save WGCNA results
+#write.csv(geneInfo_sig, file = "WGCNA result_sig protein.csv", row.names = FALSE)
+
+```
+
+
+# Separating out modules for STRING and GO term analysis
+
+```{r}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+all_protein<- read.csv("Input/No Trigger_channel_prot_stats.csv")
+geneInfo_sig<- read.csv("Input/WGCNA result_sig protein.csv")
+
+```
+
+# Overall GO term analysis
+```{r running function and analysis}
+
+go_enrich<- function(a,x){
+
+df<- a%>%
+  filter(moduleColor == x)
+  
+gene<- df$Peptides
+ 
+genes<-mapIds(org.Hs.eg.db, gene, "ENTREZID", "UNIPROT")
+
+print("done mapping")
+
+genes<- na.omit(genes)
+
+print("Ready to enrich")
+
+#Go to enrich
+genes<- genes[!duplicated(genes)]
+
+go_enriched<- enrichGO(genes,OrgDb = "org.Hs.eg.db", ont="all", universe =protein_bc_go)
+go_enriched_2 <- simplify(go_enriched, cutoff=0.7, by="p.adjust", select_fun=min)
+print("Enriched")
+go_enriched_df<- as.data.frame(go_enriched)
+a<- deparse(substitute(a))
+write.csv(go_enriched_df, paste0(a, "_",x, "GO_terms.csv"))
+print("Wrote file")
+#Visualizing
+go_enriched_dot<-dotplot(go_enriched, split="ONTOLOGY", showCategory = 5)+
+  facet_grid(ONTOLOGY~., scale="free")+
+  scale_fill_continuous(limits=c(0,0.05))+ 
+  scale_y_discrete(labels=function(x) str_wrap(x, width=47))
+  
+ggsave(go_enriched_dot, file= paste0(a,"_",x,"GO_terms.eps"), device = "eps", width = 7, height = 7)
+print("Wrote plot")
+
+
+return(go_enriched_df)
+}
+```
+
+## Running the GO enriched function
+
+```{r}
+
+#Make protein_bc_go aka background
+gene<- all_protein$Peptide
+ 
+genes<-mapIds(org.Hs.eg.db, gene, "ENTREZID", "UNIPROT")
+
+protein_bc_go<- as.vector(na.omit(genes))
+
+#Significant protein
+
+sig_purple<- go_enrich(geneInfo_sig, "purple")
+  #No enrichemnt of GO terms
+sig_turquoise<- go_enrich(geneInfo_sig, "turquoise")
+#sig_red<- go_enrich(geneInfo_sig, "red")
+sig_black<- go_enrich(geneInfo_sig, "black")
+sig_yellow<- go_enrich(geneInfo_sig, "yellow")
+sig_pink<- go_enrich(geneInfo_sig, "pink")
+sig_blue<- go_enrich(geneInfo_sig, "blue")
+sig_green<- go_enrich(geneInfo_sig, "green")
+sig_brown<- go_enrich(geneInfo_sig, "brown")
+#sig_magenta<- go_enrich(geneInfo_sig, "magenta")
+
+
+```
+
+
+# Heatmap of Sig proteins with z score
+```{r}
+cal_z_score <- function(x){
+ (x - mean(x)) / sd(x)
+}
+sig_protein<- bc_df_t_2%>%
+  filter(anova_pvalue< 0.05)
+
+sig_protein_heat<- sig_protein[,c(1:16)]
+sig_protein_heat[]<- lapply(sig_protein_heat, as.numeric)
+
+sig_protein_heat_score <- t(apply(sig_protein_heat, 1, cal_z_score)) # apply (df)
+sig_protein_heat_score <- na.omit(sig_protein_heat_score)
+sig_protein_heat_score<-as.data.frame(t(sig_protein_heat_score))
+
+paletteLength <- 100
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_protein_heat_score), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_protein_heat_score)/paletteLength, max(sig_protein_heat_score), length.out=floor(paletteLength/2)))
+
+svg("Significant proteins z scored heatmap.svg", height = 10, width =40)
+
+a<- pheatmap(sig_protein_heat_score,
+             color = myColor,
+             cellwidth = 1,
+             cellheight = 30,
+             fontsize_row = 20,
+             fontsize = 20,
+             main = "Z-score of significant proteins",
+             border_color = NA,
+             cluster_rows = T,
+             cluster_cols = T,
+             show_colnames = F,
+             show_rownames = T)
+
+dev.off()
+
+a
+```
+
+## Adding in WGCNA and cell line annotations
+```{r}
+wgcna_annotation<- read.csv("/home/cberry/Documents/BC_TMT Analysis/WGCNA/Protein/WGCNA result_sig protein.csv")
+
+wgcna_annotation<- wgcna_annotation[,c(1:2)]
+colnames(wgcna_annotation)<- c("Accession", "Module.color")
+wgcna.annotation.2<- as.data.frame(wgcna_annotation[,-c(1)])
+rownames(wgcna.annotation.2)<- wgcna_annotation$Accession
+colnames(wgcna.annotation.2)<- "Module.colors"
+
+
+```
+
+```{r}
+cal_z_score <- function(x){
+ (x - mean(x)) / sd(x)
+}
+sig_protein<- bc_df_t_2%>%
+  filter(anova_pvalue< 0.05)
+
+sig_protein_heat<- sig_protein[,c(1:16)]
+sig_protein_heat[]<- lapply(sig_protein_heat, as.numeric)
+
+sig_protein_heat_score <- t(apply(sig_protein_heat, 1, cal_z_score)) # apply (df)
+sig_protein_heat_score <- na.omit(sig_protein_heat_score)
+sig_protein_heat_score<-as.data.frame(t(sig_protein_heat_score))
+
+#Cell annotation
+cell_annotation<-data.frame(cells= rep(c("HCC1806", "MCF10A","MCF7","MDAMB231"), each = 4))
+rownames(cell_annotation)<- rownames(sig_protein_heat_score)
+
+```
+
+
+```{r}
+library(pheatmap)
+paletteLength <- 100
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_protein_heat_score), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_protein_heat_score)/paletteLength, max(sig_protein_heat_score), length.out=floor(paletteLength/2)))
+
+annotation_color<- list(Module.colors=c(black = "black",blue = "blue", brown = "brown", cyan = "cyan", green = "green",turquoise = "turquoise", grey = "grey",brown = "brown", magenta = "magenta",pink = "pink", purple = "purple", red = "red", yellow = "yellow", grey60 = "dark grey", greenyellow = "green yellow", lightcyan = "light cyan", midnightblue = "navy", tan= "tan", salmon= "salmon"),
+                        cells= c(HCC1806 = "#674ea7",MCF10A="#cc0000",MCF7 = "#26b3ff", MDAMB231 = "#3ca603"))
+
+
+
+svg("Significant proteins z scored heatmap with wgcna.svg", height = 12, width =40)
+
+a<- pheatmap(sig_protein_heat_score,
+             annotation_col= wgcna.annotation.2,
+             annotation_colors = annotation_color,
+             annotation_row = cell_annotation,
+             color = myColor,
+             cellwidth = 1,
+             cellheight = 30,
+             fontsize_row = 20,
+             fontsize = 20,
+             main = "Z-score of significant proteins",
+             border_color = NA,
+             cluster_rows = T,
+             cluster_cols = T,
+             show_colnames = F,
+             show_rownames = F)
+
+dev.off()
+
+a
+```

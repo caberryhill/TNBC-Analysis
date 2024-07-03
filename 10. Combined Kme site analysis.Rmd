@@ -1,0 +1,748 @@
+```{r}
+#This script conducts a WGCNA, heatmap, GO term analysis, and bargraphs of all differentially abundant sites
+```
+
+# Significant Kme sites
+
+```{r}
+library(WGCNA)
+
+library(dplyr)
+all.kme<- read.csv("Input/All Quantified Kme sites.csv")
+all.kme.sig<- all.kme%>%
+  filter(p.t_mdam_mcf7 != "ns" |
+           p.t_mdam_hcc != "ns" |
+           p.t_mdam_mcf10 != "ns" |
+           p.t_mcf7_hcc != "ns" |
+           p.t_mcf7_mcf10 != "ns" |
+           p.t_hcc_mcf10 != "ns")
+
+all.kme.sig$ID<- paste0(all.kme.sig$Format3, "-", rownames(all.kme.sig))
+clean_2<- all.kme.sig[,c(104,39:54)]
+dim(clean_2);names(clean_2)
+```
+
+```{r}
+options(stringsAsFactors=FALSE)
+```
+## Setting up WGCNA
+```{r}
+
+# Read in the proteomic data set		
+rownames(clean_2)<- clean_2[,c(1)]
+clean_2<- clean_2[,-c(1)]
+# Take a quick look at what is in the data set:
+dim(clean_2)
+names(clean_2)
+```
+
+```{r}
+datTraits<- read.csv("Input//traits.csv")
+rownames(datTraits)=datTraits[,1];datTraits=datTraits[,-1]
+dim(datTraits);names(datTraits)
+
+```
+## Setting Soft Treshold 
+```{r}
+#clean_2<- as.data.frame(t(clean_2))
+# Choose a set of soft-thresholding powers
+powers = c(c(1:10), seq(from = 12, to=30, by=2))
+# Call the network topology analysis function
+sft = pickSoftThreshold(clean_2, powerVector = powers, verbose = 5, networkType = "signed")
+# Plot the results:
+svg("Proteome Figure 1 Sig kme.svg",10,5)
+# sizeGrWindow(9, 5)
+par(mfrow = c(1,2));
+cex1 = 0.9;
+# Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+# this line corresponds to using an R^2 cut-off of h
+abline(h=0.8,col="red")
+# Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+dev.off()
+```
+
+#WGCNA construction
+```{r}
+softPower = 16;
+net = blockwiseModules(clean_2, power = softPower, networkType = "signed",
+                       TOMType = "signed", minModuleSize = 20,
+                       reassignThreshold = 0, mergeCutHeight = 0.25,
+                       numericLabels = TRUE, pamRespectsDendro = FALSE,
+                       saveTOMs = TRUE,
+                       saveTOMFileBase = "Example-1 ProDataTOM", 
+                       verbose = 3)
+table(net$colors)
+
+
+# open a graphics window
+svg("Proteome Figure 2_sig kme.svg",12,9)
+#sizeGrWindow(12, 9)
+# Convert labels to colors for plotting
+mergedColors = labels2colors(net$colors)
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
+                    "Module colors",
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+dev.off()	
+```
+
+## Module analysis
+```{r}
+moduleLabels = net$colors
+moduleColors = labels2colors(net$colors)
+MEs = net$MEs;
+geneTree = net$dendrograms[[1]];
+
+# Define numbers of genes and samples
+nGenes = ncol(clean_2);
+nSamples = nrow(clean_2);
+# Recalculate MEs with color labels
+MEs0 = moduleEigengenes(clean_2, moduleColors)$eigengenes
+MEs = orderMEs(MEs0)
+moduleTraitCor = cor(MEs, datTraits, use = "p");
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
+
+
+# open a graphics window
+svg("Significant kme site.svg",5,6)
+# sizeGrWindow(10,6)
+# Will display correlations and their p-values
+textMatrix =  paste(signif(moduleTraitCor, 2), "\n(",
+                    signif(moduleTraitPvalue, 1), ")", sep = "");
+dim(textMatrix) = dim(moduleTraitCor)
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = names(datTraits),
+               yLabels = names(MEs),
+               ySymbols = names(MEs),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = FALSE,
+               cex.text = 0.5,
+               zlim = c(-1,1),
+               main = paste("Module-trait relationships"))
+dev.off()
+
+
+```
+
+## Eigenpeptides with modules
+```{r}
+
+# Define variable Cancer containing the Cancer column of datTrait
+Cancer = as.data.frame(datTraits$Cancer);
+names(Cancer) = "Cancer"
+# names (colors) of the modules
+modNames = substring(names(MEs), 3)
+
+geneModuleMembership = as.data.frame(cor(clean_2, MEs, use = "p"));
+MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
+names(geneModuleMembership) = paste("MM", modNames, sep="");
+names(MMPvalue) = paste("p.MM", modNames, sep="");
+geneTraitSignificance = as.data.frame(cor(clean_2, Cancer, use = "p"));
+GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
+names(geneTraitSignificance) = paste("GS.", names(Cancer), sep="");
+names(GSPvalue) = paste("p.GS.", names(Cancer), sep="");
+
+# Create the starting data frame
+geneInfo0 = data.frame(Peptides = names(clean_2),
+                       moduleColor = moduleColors,
+                       geneTraitSignificance,GSPvalue)
+# Order modules by their significance for Biofuel
+modOrder = order(-abs(cor(MEs, Cancer, use = "p")));
+# Add module membership information in the chosen order
+for (mod in 1:ncol(geneModuleMembership))
+{
+  oldNames = names(geneInfo0)
+  geneInfo0 = data.frame(geneInfo0, geneModuleMembership[, modOrder[mod]], 
+                         MMPvalue[, modOrder[mod]]);
+  names(geneInfo0) = c(oldNames, paste("MM.", modNames[modOrder[mod]], sep=""),
+                       paste("p.MM.", modNames[modOrder[mod]], sep=""))
+}
+
+geneInfo0<- na.omit(geneInfo0)
+# Order the genes in the geneInfo variable first by module color, then by geneTraitSignificance
+geneOrder = order(geneInfo0$moduleColor, -abs(geneInfo0$GS.Cancer));
+geneInfo = geneInfo0[geneOrder, ]
+#save WGCNA results
+write.csv(geneInfo, file = "Significant Kme WGCNA result_sig kme.csv", row.names = FALSE)
+
+```
+
+
+# Separating out modules for STRING and GO term analysis
+ 
+
+```{r}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+
+all_protein<- read.csv("Input/Trigger Channel protein Summary2.csv")
+
+```
+
+
+```{r running function and analysis}
+
+go_enrich<- function(a,x){
+
+df<- geneInfo%>%
+  filter(moduleColor == "blue")
+
+df$Accession<- sub("-.*", "", df$Peptides)
+  
+gene<- df$Accession
+ 
+genes<-mapIds(org.Hs.eg.db, gene, "ENTREZID", "UNIPROT")
+
+print("done mapping")
+
+genes<- na.omit(genes)
+
+print("Ready to enrich")
+
+#Go to enrich
+genes<- genes[!duplicated(genes)]
+
+go_enriched<- enrichGO(genes,OrgDb = "org.Hs.eg.db", ont="all", universe =protein_bc_go)
+print("Enriched")
+go_enriched_df<- as.data.frame(go_enriched)
+a<- deparse(substitute(a))
+write.csv(go_enriched_df, paste0(a, "_",x, "GO_terms.csv"))
+print("Wrote file")
+#Visualizing
+
+go_enriched_dot<-dotplot(go_enriched, split="ONTOLOGY", showCategory = 5)+
+  facet_grid(ONTOLOGY~., scale="free")+
+  scale_fill_continuous(limits=c(0,0.05))+ 
+  scale_y_discrete(labels=function(x) str_wrap(x, width=47))
+
+ ggsave(go_enriched_dot, file= ("blue_GO_terms.eps"), device = "eps", width = 7, height = 7) 
+ 
+ggsave(go_enriched_dot, file= paste0(a,"_",x,"GO_terms.eps"), device = "eps", width = 7, height = 7)
+print("Wrote plot")
+
+
+return(go_enriched_df)
+}
+```
+
+```{r}
+
+#Make protein_bc_go aka background
+gene<- all_protein$Peptide
+ 
+genes<-mapIds(org.Hs.eg.db, gene, "ENTREZID", "UNIPROT")
+
+protein_bc_go<- as.vector(na.omit(genes))
+
+#Significant protein
+
+sig_turquoise<- go_enrich(sig_kme, "turquoise")
+sig_grey<- go_enrich(sig_kme, "grey")
+sig_blue<- go_enrich(sig_kme, "blue")
+sig_brown<- go_enrich(sig_kme, "brown")
+
+
+```
+
+
+
+# Heatmap of upregulated sites
+```{r}
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(stringr)
+library(dplyr)
+
+#Opening up WGCNA annotations
+
+sig_kme<- all.kme%>%
+  filter(p.t_mdam_mcf7 != "ns" |
+           p.t_mdam_hcc != "ns" |
+           p.t_mdam_mcf10 != "ns" |
+           p.t_mcf7_hcc != "ns" |
+           p.t_mcf7_mcf10 != "ns" |
+           p.t_hcc_mcf10 != "ns")
+
+sig_kme$ID<- paste0(sig_kme$Format3, "-", rownames(sig_kme))
+
+sig_kme<- sig_kme[,c(39:54,75,77,79,81,20,103,104)]
+sig_kme[,24:26]<- str_split_fixed(sig_kme$Format3, "-", 3)
+
+genes<- mapIds(org.Hs.eg.db,
+               sig_kme$V24,
+               "SYMBOL",
+               "UNIPROT")
+
+sig_kme$genename<- genes
+sig_kme$kme.gene.name<- paste0(sig_kme$genename, "-", sig_kme$V25, "-", sig_kme$V26,"-",sig_kme$type,"-",row_number(sig_kme) )
+rownames(sig_kme)<- sig_kme$kme.gene.name
+
+
+#WGCNA annotation
+
+wgcna.kme<- geneInfo[,c(1:2)]
+colnames(wgcna.kme)<- c("ID", "moduleColor")
+wgcna.kme<- inner_join(sig_kme, wgcna.kme, by = "ID")
+wgcna.kme<- wgcna.kme[,c(28:29)]
+wgcna.kme.2<- as.data.frame(wgcna.kme[,-c(1)])
+rownames(wgcna.kme.2)<- wgcna.kme$kme.gene.name
+colnames(wgcna.kme.2)<- "Module.Colors"
+
+#Cell annotation
+
+cell_annotation<-data.frame(cells= rep(c("HCC1806", "MCF10A","MCF7","MDAMB231"), each = 4))
+
+#Z-scoring
+
+cal_z_score <- function(x){
+ (x - mean(x)) / sd(x)
+}
+
+#all replciates
+
+sig_kme_allreps<- sig_kme[,c(1:16)]
+#z scored
+sig_kme_allreps[]<- lapply(sig_kme_allreps, as.numeric)
+sig_kme_allreps_zscore <- t(apply(sig_kme_allreps, 1, cal_z_score)) # apply (df)
+sig_kme_allreps_zscore <- na.omit(sig_kme_allreps_zscore)
+#log10 of abundance
+sig_kme_allreps_raw_log<- log10(sig_kme_allreps)
+
+#Cell annotation
+
+cell_annotation<-data.frame(cells= rep(c("HCC1806", "MCF10A","MCF7","MDAMB231"), each = 4))
+rownames(cell_annotation)<- colnames(sig_kme_allreps_zscore)
+  
+  
+  
+#Mean
+sig_kme_mean<- sig_kme[,c(17:20)]
+#z scored
+sig_kme_mean[]<- lapply(sig_kme_mean, as.numeric)
+sig_kme_mean_zscore <- t(apply(sig_kme_mean, 1, cal_z_score)) # apply (df)
+sig_kme_mean_zscore <- na.omit(sig_kme_mean_zscore)
+#log10 of abundance
+sig_kme_mean_raw_log<- log10(sig_kme_mean)
+
+
+```
+
+## Without WGCNA annotation
+```{r}
+library(pheatmap)
+
+#All replicates
+## z score
+
+paletteLength <- 160
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_kme_allreps_zscore), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_kme_allreps_zscore)/paletteLength, max(sig_kme_allreps_zscore), length.out=floor(paletteLength/2)))
+
+svg("Z-score of all Significant Kme clustered without means.svg", height = 25, width = 15)
+
+a<- pheatmap(sig_kme_allreps_zscore,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 15,
+             #scale= "row",
+             cellheight = 10,
+             fontsize_row = 6,
+             main = "Z-score of the Significant Kme Normalized Peptide Abundance",
+             #cutree_rows = 3,
+             border_color = NA,
+             show_colnames = T,
+             cluster_cols = F,
+             cluster_rows = F,
+             legend_breaks =c(-3,-2,-1,0,1,2,3, 3.5))
+             #labels_row= c("HCC1806", "MCF10A","MCF7","MDAMB231"))
+
+dev.off()
+a
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_kme_allreps_raw_log), 0, length.out=ceiling(paletteLength/2) + 0.05), 
+              seq(max(sig_kme_allreps_raw_log)/paletteLength, max(sig_kme_allreps_raw_log), length.out=floor(paletteLength/2)))
+
+svg( "Abundance of all Significant Kme clustered without means.svg", height = 25, width = 15)
+
+b<- pheatmap(sig_kme_allreps_raw_log,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 15,
+             #scale= "row",
+             cellheight = 10,
+             fontsize_row = 6,
+             main = "Log10 of the Abundance of Significant Kme Normalized Peptide Abundance",
+             #cutree_rows = 3,
+             border_color = NA,
+             show_colnames = T,
+             cluster_cols = T,
+             cluster_rows = T)
+             #legend_breaks =c(-3,-2,-1,0,1,2,3, 3.5))
+             #labels_row= c("HCC1806", "MCF10A","MCF7","MDAMB231"))
+
+dev.off()
+b
+
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_kme_mean_zscore), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_kme_mean_zscore)/paletteLength, max(sig_kme_mean_zscore), length.out=floor(paletteLength/2)))
+
+svg( "Z-score of all Significant Kme clustered means.svg", height = 25, width = 10)
+
+c<- pheatmap(sig_kme_mean_zscore,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 20,
+             #scale= "row",
+             cellheight = 10,
+             fontsize_row = 6,
+             main = "Z-score of Significant Kme Normalized Peptide Abundance",
+             #cutree_rows = 3,
+             border_color = NA,
+             show_colnames = T,
+             cluster_cols = T,
+             cluster_rows = T,
+             legend_breaks =c(-3,-2,-1,0,1,2,3, 3.5))
+             #labels_row= c("HCC1806", "MCF10A","MCF7","MDAMB231"))
+
+dev.off()
+c
+
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_kme_mean_raw_log), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_kme_mean_raw_log)/paletteLength, max(sig_kme_mean_raw_log), length.out=floor(paletteLength/2)))
+
+svg( "All Significant Kme clustered log 10 means.svg", height = 25, width = 10)
+
+d<- pheatmap(sig_kme_mean_raw_log,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 20,
+             #scale= "row",
+             cellheight = 10,
+             fontsize_row = 6,
+             main = "Log10 of the Significant Kme Normalized Peptide Abundance",
+             #cutree_rows = 3,
+             border_color = NA,
+             show_colnames = T,
+             cluster_cols = T,
+             cluster_rows = T)
+             #legend_breaks =c(-3,-2,-1,0,1,2,3, 3.5))
+             #labels_row= c("HCC1806", "MCF10A","MCF7","MDAMB231"))
+
+dev.off()
+d
+```
+
+## All reps z score with WGCNA annotation
+
+```{r}
+library(pheatmap)
+
+#All replicates
+## z score
+
+paletteLength <- 160
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(sig_kme_allreps_zscore), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(sig_kme_allreps_zscore)/paletteLength, max(sig_kme_allreps_zscore), length.out=floor(paletteLength/2)))
+annotation_color<- list(Module.Colors=c(blue = "blue", turquoise = "turquoise", grey = "grey", brown = "brown"),
+                        cells= c(HCC1806 = "#674ea7",MCF10A="#cc0000",MCF7 = "#26b3ff", MDAMB231 = "#3ca603"))
+
+svg("Z-score of all Significant Kme clustered without means.svg", height = 25, width = 15)
+
+a<- pheatmap(sig_kme_allreps_zscore,
+             annotation_row= wgcna.kme.2,
+             annotation_colors = annotation_color,
+             annotation_col = cell_annotation,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 15,
+             #scale= "row",
+             cellheight = 10,
+             fontsize_row = 8,
+             main = "Z-score of the Significant Kme Normalized Peptide Abundance",
+             #cutree_rows = 3,
+             border_color = NA,
+             show_colnames = F,
+             cluster_cols = T,
+             cluster_rows = T,
+             legend_breaks =c(-3,-2,-1,0,1,2,3, 3.5))
+             #labels_row= c("HCC1806", "MCF10A","MCF7","MDAMB231"))
+
+dev.off()
+a
+```
+
+
+# GO Term analysis
+```{r opening up datasets and combining all proteins observed}
+
+all.kme<- read.csv("/home/cberry/Documents/BC_TMT Analysis/All Combined Kme sites/All Quantified Kme sites.csv")
+
+sig.kme<- all.kme %>%filter(all.kme$anova_pvalue <=0.05)
+
+bc.prot<- read.csv("/home/cberry/Documents/BC_TMT Analysis/Proteome_stats.csv")
+trig.prot<- read.csv("/home/cberry/Documents/BC_TMT Analysis/Trigger Channel Data/Combined tech reps/Trigger_channel_prot_stats_combined reps.csv")
+bc.prot.vector<- as.vector(bc.prot$Accession)
+trig.prot.vector<- as.vector(trig.prot$Accession)
+all.prot.vector<- c(bc.prot.vector, trig.prot.vector)
+all.prot.vector<- all.prot.vector[!duplicated(all.prot.vector)]
+#write.table(all.prot.vector, "all.proteins.quantified.txt", row.names = F, sep = "\t", quote = F
+```
+
+```{r running function and analysis}
+
+go_enrich<- function(x){
+
+gene<- x$Accession
+ 
+genes<-mapIds(org.Hs.eg.db, gene, "ENTREZID", "UNIPROT")
+
+print("done mapping")
+
+genes<- na.omit(genes)
+
+#genes_ID<- genes$ENTREZID
+
+print("Ready to enrich")
+
+return(genes)
+}
+```
+
+## All Quantified Kme
+```{r Kme_bc}
+protein_bc_go<- mapIds(org.Hs.eg.db, all.prot.vector, "ENTREZID", "UNIPROT")
+protein_bc_go<- protein_bc_go[!duplicated(protein_bc_go)]
+
+#All Quantified Kme
+kme_bc_go<- go_enrich(all.kme)
+kme_bc_go<- kme_bc_go[!duplicated(kme_bc_go)]
+kme_bc_go_enriched<- enrichGO(kme_bc_go,OrgDb = "org.Hs.eg.db", ont="all", universe =protein_bc_go)
+kme_bc_go_enriched_dot<-dotplot(kme_bc_go_enriched, split="ONTOLOGY")+
+  facet_grid(ONTOLOGY~., scale="free")+
+  scale_fill_continuous(limits=c(0,0.00025))+ 
+  scale_y_discrete(labels=function(x) str_wrap(x, width=47))
+kme_bc_go_enriched_dot
+ggsave(kme_bc_go_enriched_dot, file= "Kme_all_GO_terms.eps", device = "eps", width = 7, height = 10)
+kme_bc_go_enriched_df<- as.data.frame(kme_bc_go_enriched)
+write.csv(kme_bc_go_enriched_df, "Kme_all_Go_enrichment.csv")
+# n = 202 proteins
+#Sig Kme sites
+sig_kme_go<- go_enrich(sig.kme)
+sig_kme_go<- sig_kme_go[!duplicated(sig_kme_go)]
+sig_kme_go_enriched<- enrichGO(sig_kme_go,OrgDb = "org.Hs.eg.db", ont="all", universe =protein_bc_go)
+sig_kme_go_enriched_dot<-dotplot(sig_kme_go_enriched, split="ONTOLOGY")+
+  facet_grid(ONTOLOGY~., scale="free")+
+  scale_fill_continuous(limits=c(0,0.01))+ 
+  scale_y_discrete(labels=function(x) str_wrap(x, width=47))
+sig_kme_go_enriched_dot
+ggsave(sig_kme_go_enriched_dot, file= "Sig_Kme_all_GO_terms.eps", device = "eps", width = 7, height = 10)
+sig_kme_go_enriched<- as.data.frame(sig_kme_go_enriched)
+write.csv(sig_kme_go_enriched, "Sig_Kme_all_Go_enrichment.csv")
+# n = 99 proteins
+```
+
+
+# Looking at Upregulated sites
+```{r}
+up_mdamb<- all.kme%>%
+  filter(p.t_mdam_mcf7 =="Up in MDAMB231" & 
+           p.t_mdam_mcf10 == "Up in MDAMB231"&
+           p.t_mdam_hcc == "Up in MDAMB231")
+
+up_mdamb$type<- "MDAMB231"
+  
+up_hcc<-all.kme%>%
+  filter(p.t_mdam_hcc =="Up in HCC1806"&
+         p.t_mcf7_hcc =="Up in HCC1806"&
+           p.t_hcc_mcf10 == "Up in HCC1806")
+
+up_hcc$type<- "HCC1806"  
+
+up_mcf7<-all.kme %>%
+  filter(p.t_mdam_mcf7 =="Up in MCF7"&
+         p.t_mcf7_hcc=="Up in MCF7"&
+         p.t_mcf7_mcf10 =="Up in MCF7")
+
+up_mcf7$type<- "MCF7"
+
+up_mcf10a<-all.kme%>%
+  filter(p.t_hcc_mcf10 =="Up in MCF10A" &
+           p.t_mcf7_mcf10 =="Up in MCF10A"&
+           p.t_mdam_mcf10=="Up in MCF10A")
+
+
+up_mcf7_v_tnbc<- all.kme%>%
+  filter(
+          p.t_mdam_mcf7=="Up in MCF7"&
+         p.t_mcf7_hcc=="Up in MCF7")
+
+up_mcf7_v_tnbc$type<-"MCF7_v_TNBC" 
+
+
+down_mdamb<- all.kme%>%
+  filter(p.t_mdam_mcf7 =="Up in MCF7" & 
+           p.t_mdam_mcf10 == "Up in MCF10A"&
+           p.t_mdam_hcc == "Up in HCC1806")
+
+down_mdamb$type<- "MDAMB231"
+  
+down_hcc<-all.kme%>%
+  filter(p.t_mdam_hcc =="Up in MDAMB231"&
+         p.t_mcf7_hcc =="Up in MCF7"&
+           p.t_hcc_mcf10 == "Up in MCF10A")
+
+down_hcc$type<- "HCC1806"  
+
+down_mcf7<-all.kme %>%
+  filter(p.t_mdam_mcf7 =="Up in MDAMB231"&
+         p.t_mcf7_hcc=="Up in HCC1806"&
+         p.t_mcf7_mcf10 =="Up in MCF10A")
+
+down_mcf7$type<- "MCF7"
+
+up_mcf7_v_tnbc<- all.kme%>%
+  filter(
+           p.t_mdam_mcf7=="Up in MCF7"&
+           p.t_mcf7_hcc=="Up in MCF7")
+
+up_mcf7_v_tnbc$type<-"MCF7_v_TNBC" 
+
+
+
+df_2<- rbind(up_hcc,
+             up_mdamb,
+             up_mcf7,
+             down_hcc,
+             down_mcf7,
+             up_mcf7_v_tnbc,
+             down_mdamb)
+
+```
+
+#Bar graphs of sites
+
+```{r}
+library(reshape2)
+df_3<-df_2[,c(82,38:53,101)]
+
+df_3<- df_3[!duplicated(df_3$Format4),]
+df_2_melt<- melt(df_3)
+
+df_2_melt$cell<- gsub(".*_(.*)\\_.*","\\1", df_2_melt$variable)
+
+```
+```{r}
+group.colors = c(MDAMB231 = "#3ca603", MCF7 = "#26b3ff", HCC1806 = "#674ea7", MCF10A = "#cc0000")
+
+e1<-  ggplot(df_2_melt, aes(cell, value, fill = cell ))+
+  stat_summary(geom="bar", fun = mean, position = "dodge")+
+  stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge", width = 0.5)+
+    labs(title = "Significantly Upregulated and Downregulated Kme Sites",
+         y = "Protein Normalized Kme Peptide Abundance",
+         x = "")+
+  facet_wrap(~Format4, scales = "free")+
+    theme_bw()+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())+
+    scale_fill_manual(values = group.colors)
+
+e1
+
+ggsave("Combined plots.nostats.eps", e1, device = "eps", height = 12, width = 15)
+```
+
+
+```{r}
+library(ggsimplestats)
+library(rstatix)
+library(ggpubr)
+df_2_melt$Rep<- gsub(".*_","", df_2_melt$variable)
+group.colors = c(MDAMB231 = "#3ca603", MCF7 = "#26b3ff", HCC1806 = "#674ea7", MCF10A = "#cc0000")
+
+
+b.plot<- ggplot(df_2_melt, aes(x = cell, y = value, group = cell, fill = cell))+
+  geom_boxplot()+
+  geom_jitter(aes(shape = Rep, size = 2))+
+  facet_wrap(vars(Format4), scales = "free")+
+  theme_bw()+
+  scale_fill_manual(values = group.colors)+
+    labs(title = "Kme Sites Quantified With Trigger Channel",
+         y = "Normalized Kme Peptide Abundance",
+         x = "")+
+  stat_tukeyHSD(step.increase = 0.1,
+                vjust = -0.1)+
+  scale_y_continuous(expand = expansion(mult = c(0.1,0.325)))+
+  stat_compare_means(method = "anova",vjust = 5)
+
+#b.plot
+ggsave("Significant Kme sites.jitter.with.trigger.eps", b.plot,device = "eps", width = 20, height = 20)  
+ggsave("Significant Kme sites.jitter.with.trigger.png", b.plot,device = "png", width = 20, height = 20)  
+
+```
+
+#All the Kme sites
+
+```{r}
+#library(ggsimplestats)
+#library(rstatix)
+#library(ggpubr)
+
+df_3<-trig.kme.stats[,c(82,38:53)]
+
+df_3<- df_3[!duplicated(df_3$Format4),]
+df_2_melt<- melt(df_3)
+
+df_2_melt$cell<- gsub(".*_(.*)\\_.*","\\1", df_2_melt$variable)
+
+
+df_2_melt$Rep<- gsub(".*_","", df_2_melt$variable)
+group.colors = c(MDAMB231 = "#3ca603", MCF7 = "#26b3ff", HCC1806 = "#674ea7", MCF10A = "#cc0000")
+
+
+b.plot<- ggplot(df_2_melt, aes(x = cell, y = value, group = cell, fill = cell))+
+  geom_boxplot()+
+  geom_jitter(aes(shape = Rep, size = 2))+
+  facet_wrap(vars(Format4), scales = "free")+
+  theme_bw()+
+  scale_fill_manual(values = group.colors)+
+    labs(title = "Kme Sites Quantified With Trigger Channel",
+         y = "Normalized Kme Peptide Abundance",
+         x = "")+
+  stat_tukeyHSD(step.increase = 0.1,
+                vjust = -0.1)+
+  scale_y_continuous(expand = expansion(mult = c(0.1,0.325)))+
+  stat_compare_means(method = "anova",vjust = 1)
+
+#b.plot
+ggsave("All Kme sites.jitter.with.trigger.eps", b.plot,device = "eps", width = 40, height = 40)  
+ggsave("All Kme sites.jitter.with.trigger.png", b.plot,device = "png", width = 40, height = 40)  
+```
+

@@ -1,0 +1,847 @@
+
+```{r}
+library(dplyr)
+library(stringr)
+library(ggplot2)
+```
+
+
+
+
+# Analyzing all Kme sites
+# Setting up no trigger channel Kme site df
+```{r}
+no.trig.kme<- read.csv("Input/no_trigger_methylsites_detected.csv")
+no.trig.kme_quant<- na.omit(no.trig.kme)
+no.trig.prot<- read.csv("Input/No Trigger_channel_prot_stats.csv")
+
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  filter(!grepl ("CONTAMINANT", Master.Protein.Descriptions))
+no.trig.kme_quant.2<- no.trig.kme_quant[,c(35:50)]
+#Adding pseudocount
+no.trig.kme_quant.2<- no.trig.kme_quant.2+0.1
+x<- no.trig.kme_quant[c(56,61,62,6)]
+no.trig.kme_quant<- cbind(no.trig.kme_quant.2, x)
+colnames(no.trig.kme_quant)<- c("HCC1806_Rep1_kme",
+                    "HCC1806_Rep2_kme",
+                    "HCC1806_Rep3_kme",
+                    "HCC1806_Rep4_kme",
+                    "MCF10A_Rep1_kme",
+                    "MCF10A_Rep2_kme",
+                    "MCF10A_Rep3_kme",
+                    "MCF10A_Rep4_kme",
+                    "MCF7_Rep1_kme",
+                    "MCF7_Rep2_kme",
+                    "MCF7_Rep3_kme",
+                    "MCF7_Rep4_kme",
+                    "MDAMB231_Rep1_kme",
+                    "MDAMB231_Rep2_kme",
+                    "MDAMB231_Rep3_kme",
+                    "MDAMB231_Rep4_kme",
+                    "Accession",
+                    "Format2",
+                    "Format3",
+                    "Description")
+
+
+#Normalizing to protein abundance
+
+#Pulling out accession
+
+y<- as.vector(no.trig.kme_quant$Accession)
+
+y<- y[!duplicated(y)]
+
+x<- no.trig.prot[no.trig.prot$Accession %in% y,]
+
+no.trig.kme_quant<- inner_join(no.trig.kme_quant, x, by = "Accession")
+
+no.trig.kme_quant<- no.trig.kme_quant[,c(1:37)]
+
+
+#HCC1806
+no.trig.kme_quant$Norm_HCC1806_Rep1<- no.trig.kme_quant$HCC1806_Rep1_kme/no.trig.kme_quant$HCC1806_Rep1
+no.trig.kme_quant$Norm_HCC1806_Rep2<- no.trig.kme_quant$HCC1806_Rep2_kme/no.trig.kme_quant$HCC1806_Rep2
+no.trig.kme_quant$Norm_HCC1806_Rep3<- no.trig.kme_quant$HCC1806_Rep3_kme/no.trig.kme_quant$HCC1806_Rep3
+no.trig.kme_quant$Norm_HCC1806_Rep4<- no.trig.kme_quant$HCC1806_Rep4_kme/no.trig.kme_quant$HCC1806_Rep4
+
+#MCF10A
+no.trig.kme_quant$Norm_MCF10A_Rep1<- no.trig.kme_quant$MCF10A_Rep1_kme/no.trig.kme_quant$MCF10A_Rep1
+no.trig.kme_quant$Norm_MCF10A_Rep2<- no.trig.kme_quant$MCF10A_Rep2_kme/no.trig.kme_quant$MCF10A_Rep2
+no.trig.kme_quant$Norm_MCF10A_Rep3<- no.trig.kme_quant$MCF10A_Rep3_kme/no.trig.kme_quant$MCF10A_Rep3
+no.trig.kme_quant$Norm_MCF10A_Rep4<- no.trig.kme_quant$MCF10A_Rep4_kme/no.trig.kme_quant$MCF10A_Rep4
+
+#MCF7
+no.trig.kme_quant$Norm_MCF7_Rep1<- no.trig.kme_quant$MCF7_Rep1_kme/no.trig.kme_quant$MCF7_Rep1
+no.trig.kme_quant$Norm_MCF7_Rep2<- no.trig.kme_quant$MCF7_Rep2_kme/no.trig.kme_quant$MCF7_Rep2
+no.trig.kme_quant$Norm_MCF7_Rep3<- no.trig.kme_quant$MCF7_Rep3_kme/no.trig.kme_quant$MCF7_Rep3
+no.trig.kme_quant$Norm_MCF7_Rep4<- no.trig.kme_quant$MCF7_Rep4_kme/no.trig.kme_quant$MCF7_Rep4
+
+#MCF7
+no.trig.kme_quant$Norm_MDAMB231_Rep1<- no.trig.kme_quant$MDAMB231_Rep1_kme/no.trig.kme_quant$MDAMB231_Rep1
+no.trig.kme_quant$Norm_MDAMB231_Rep2<- no.trig.kme_quant$MDAMB231_Rep2_kme/no.trig.kme_quant$MDAMB231_Rep2
+no.trig.kme_quant$Norm_MDAMB231_Rep3<- no.trig.kme_quant$MDAMB231_Rep3_kme/no.trig.kme_quant$MDAMB231_Rep3
+no.trig.kme_quant$Norm_MDAMB231_Rep4<- no.trig.kme_quant$MDAMB231_Rep4_kme/no.trig.kme_quant$MDAMB231_Rep4
+
+
+#HCC1806 / MCF10A Rep 1
+
+no.trig.kme_quant$norm_m_hcc1806_rep1<- no.trig.kme_quant$Norm_HCC1806_Rep1/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_hcc1806_rep2<- no.trig.kme_quant$Norm_HCC1806_Rep2/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_hcc1806_rep3<- no.trig.kme_quant$Norm_HCC1806_Rep3/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_hcc1806_rep4<- no.trig.kme_quant$Norm_HCC1806_Rep4/no.trig.kme_quant$Norm_MCF10A_Rep1
+
+#MCF7/ MCF10A Rep 1
+no.trig.kme_quant$norm_m_mcf7_rep1<- no.trig.kme_quant$Norm_MCF7_Rep1/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mcf7_rep2<- no.trig.kme_quant$Norm_MCF7_Rep2/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mcf7_rep3<- no.trig.kme_quant$Norm_MCF7_Rep3/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mcf7_rep4<- no.trig.kme_quant$Norm_MCF7_Rep4/no.trig.kme_quant$Norm_MCF10A_Rep1
+
+
+#MDAMB231/ MCF10A Rep 1
+no.trig.kme_quant$norm_m_mdam_rep1<- no.trig.kme_quant$Norm_MDAMB231_Rep1/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mdam_rep2<- no.trig.kme_quant$Norm_MDAMB231_Rep2/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mdam_rep3<- no.trig.kme_quant$Norm_MDAMB231_Rep3/no.trig.kme_quant$Norm_MCF10A_Rep1
+no.trig.kme_quant$norm_m_mdam_rep4<- no.trig.kme_quant$Norm_MDAMB231_Rep4/no.trig.kme_quant$Norm_MCF10A_Rep1
+
+#HCC1806 mean and sd
+
+no.trig.kme_quant$hcc1806_mean<- rowMeans(no.trig.kme_quant[,c(1:4)])
+no.trig.kme_quant$hcc1806_sd<-apply(no.trig.kme_quant[,1:4], 1, sd)
+
+#MCF7 mean and sd
+
+no.trig.kme_quant$mcf7_mean<- rowMeans(no.trig.kme_quant[,c(9:12)])
+no.trig.kme_quant$mcf7_sd<-apply(no.trig.kme_quant[,9:12], 1, sd)
+
+#MDAMB231 mean and sd
+
+no.trig.kme_quant$mdam_mean<- rowMeans(no.trig.kme_quant[,c(13:16)])
+no.trig.kme_quant$mdam_sd<-apply(no.trig.kme_quant[,13:16], 1, sd)
+
+
+#MCF10A mean and sd
+
+no.trig.kme_quant$mcf10a_mean<- rowMeans(no.trig.kme_quant[,c(5:8)])
+no.trig.kme_quant$mcf10a_sd<-apply(no.trig.kme_quant[,5:8], 1, sd)
+
+#HCC1806 mean and sd Normalized to Protein
+
+no.trig.kme_quant$hcc1806_norm_mean<- rowMeans(no.trig.kme_quant[,c(38:41)])
+no.trig.kme_quant$hcc1806_norm_sd<-apply(no.trig.kme_quant[,38:41], 1, sd)
+
+#MCF7 mean and sd Normalized to Protein
+
+no.trig.kme_quant$mcf7_norm_mean<- rowMeans(no.trig.kme_quant[,c(46:49)])
+no.trig.kme_quant$mcf7_norm_sd<-apply(no.trig.kme_quant[,46:49], 1, sd)
+
+#MDAMB231 mean and sd Normalized to Protein
+
+no.trig.kme_quant$mdam_norm_mean<- rowMeans(no.trig.kme_quant[,c(50:53)])
+no.trig.kme_quant$mdam_norm_sd<-apply(no.trig.kme_quant[,50:53], 1, sd)
+
+
+#MCF10A mean and sd Normalized to Protein
+
+no.trig.kme_quant$mcf10a_norm_mean<- rowMeans(no.trig.kme_quant[,c(42:45)])
+no.trig.kme_quant$mcf10a_norm_sd<-apply(no.trig.kme_quant[,42:45], 1, sd)
+
+
+no.trig.kme_quant$Format4<- paste0(no.trig.kme_quant$Format3, "-", rownames(no.trig.kme_quant))
+
+no.trig.kme_quant<- na.omit(no.trig.kme_quant)
+
+# Tukey test
+no.trig.kme_quant_2<- no.trig.kme_quant[,c(82,38:53)]
+
+colnames(no.trig.kme_quant_2)<- c("Format4",
+                     "HCC1806_Rep1",
+                    "HCC1806_Rep2",
+                    "HCC1806_Rep3",
+                    "HCC1806_Rep4",
+                    "MCF10A_Rep1",
+                    "MCF10A_Rep2",
+                    "MCF10A_Rep3",
+                    "MCF10A_Rep4",
+                    "MCF7_Rep1",
+                    "MCF7_Rep2",
+                    "MCF7_Rep3",
+                    "MCF7_Rep4",
+                    "MDAMB231_Rep1",
+                    "MDAMB231_Rep2",
+                    "MDAMB231_Rep3",
+                    "MDAMB231_Rep4"
+                    )
+
+no.trig.kme_quant_2<- as.data.frame(t(no.trig.kme_quant_2))
+
+
+colnames(no.trig.kme_quant_2)<- no.trig.kme_quant_2[1,]
+no.trig.kme_quant_2<- no.trig.kme_quant_2[-c(1),]
+
+no.trig.kme_quant_2$type<- rownames(no.trig.kme_quant_2)
+
+no.trig.kme_quant_2<- no.trig.kme_quant_2[,c(240,1:239)]
+
+no.trig.kme_quant_2$type<- gsub("\\_.*","", no.trig.kme_quant_2$type)
+
+
+  anova <- aov(no.trig.kme_quant_2[,2] ~ type, data = no.trig.kme_quant_2)
+  tukey <- TukeyHSD(anova)
+  prot_pairwise<- as.data.frame(t(tukey$type[, "p adj"]))
+  rownames(prot_pairwise)<- colnames(no.trig.kme_quant_2[2])
+
+for (i in 3:ncol(no.trig.kme_quant_2)){
+  #Pull gene name from column heading
+  column <- names(no.trig.kme_quant_2[i])
+  #Run anova on the column against the type
+  anova <- aov(no.trig.kme_quant_2[,i] ~ type, data = no.trig.kme_quant_2)
+  #Run the tukey on the anova
+  tukey <- TukeyHSD(anova)
+  #Pull out the p value for every comparison and make it in a dataframe
+  y<- as.data.frame(t(tukey$type[, "p adj"]))
+  #put the rowname as the gene name
+  rownames(y)<- colnames(no.trig.kme_quant_2[i])
+  #combine with pre-initiated dataframe
+  prot_pairwise<- rbind(prot_pairwise,y)
+  #return the df
+}
+
+  
+  n<- vector()
+anova_run<- apply(no.trig.kme_quant_2[,2:ncol(no.trig.kme_quant_2)],2, function(a){
+
+x<- aov(a~type, data = no.trig.kme_quant_2)
+summary(x)
+y<- summary(x)[[1]][["Pr(>F)"]][[1]]
+n<- append(n,y)
+
+return(n)})
+
+no.trig.kme_quant$anova_pvalue<- anova_run
+
+no.trig.kme_quant$fc_mdamb_v_mcf7<- no.trig.kme_quant$mdam_norm_mean/no.trig.kme_quant$mcf7_norm_mean
+
+no.trig.kme_quant$fc_mdamb_v_hcc<- no.trig.kme_quant$mdam_norm_mean/no.trig.kme_quant$hcc1806_norm_mean
+
+no.trig.kme_quant$fc_mdamb_v_mcf10<- no.trig.kme_quant$mdam_norm_mean/no.trig.kme_quant$mcf10a_norm_mean
+
+no.trig.kme_quant$fc_mcf7_v_hcc<- no.trig.kme_quant$mcf7_norm_mean/no.trig.kme_quant$hcc1806_norm_mean
+
+no.trig.kme_quant$fc_mcf7_v_mcf10<- no.trig.kme_quant$mcf7_norm_mean/no.trig.kme_quant$mcf10a_norm_mean
+
+no.trig.kme_quant$fc_hcc_v_mcf10<- no.trig.kme_quant$hcc1806_norm_mean/no.trig.kme_quant$mcf10a_norm_mean
+
+
+prot_pairwise$Format4<- rownames(prot_pairwise)
+
+no.trig.kme_quant<- inner_join(no.trig.kme_quant, prot_pairwise, by = "Format4")
+
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_mdam_mcf7= case_when(fc_mdamb_v_mcf7 > 1.2& `MDAMB231-MCF7`  <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf7 < 0.83 & `MDAMB231-MCF7` <=0.05 ~"Up in MCF7",
+                                 TRUE ~ "ns"))
+
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_mdam_hcc= case_when(fc_mdamb_v_hcc > 1.2& `MDAMB231-HCC1806` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_hcc <0.83 & `MDAMB231-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_mdam_mcf10= case_when(fc_mdamb_v_mcf10 > 1.2& `MDAMB231-MCF10A` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf10 <0.83 & `MDAMB231-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_mcf7_hcc= case_when(fc_mcf7_v_hcc > 1.2& `MCF7-HCC1806` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_hcc <0.83 & `MCF7-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_mcf7_mcf10= case_when(fc_mcf7_v_mcf10 > 1.2& `MCF7-MCF10A` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_mcf10 <0.83 & `MCF7-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+no.trig.kme_quant<- no.trig.kme_quant%>%
+  mutate(p.t_hcc_mcf10= case_when(fc_hcc_v_mcf10 > 1.2& `MCF10A-HCC1806` <=0.05 ~ "Up in HCC1806",
+                                 fc_hcc_v_mcf10 <0.83 & `MCF10A-HCC1806` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+
+```
+
+# Preparing Trigger channel Kme sites
+```{r Trigger Channel}
+
+trig.kme.detect<- read.csv("Input/TriggerChannel_methylsites_detected.csv")
+
+trig.prot<- read.csv("Input/Trigger_channel_prot_stats_combined reps.csv")
+
+#Making smaller df
+trig.kme.sites<- trig.kme.detect%>%
+  filter(!grepl("CONTAMINANT", Master.Protein.Descriptions))
+trig.kme.sites<- na.omit(trig.kme.sites)
+trig.kme<- trig.kme.sites[,c(38:53)]
+#Adding pseudocount
+trig.kme<- trig.kme+0.1
+x<- trig.kme.sites[c(61,66,67,15)]
+trig.kme<- cbind(trig.kme, x)
+colnames(trig.kme)<- c("HCC1806_Rep1_kme",
+                    "HCC1806_Rep2_kme",
+                    "HCC1806_Rep3_kme",
+                    "HCC1806_Rep4_kme",
+                    "MCF10A_Rep1_kme",
+                    "MCF10A_Rep2_kme",
+                    "MCF10A_Rep3_kme",
+                    "MCF10A_Rep4_kme",
+                    "MCF7_Rep1_kme",
+                    "MCF7_Rep2_kme",
+                    "MCF7_Rep3_kme",
+                    "MCF7_Rep4_kme",
+                    "MDAMB231_Rep1_kme",
+                    "MDAMB231_Rep2_kme",
+                    "MDAMB231_Rep3_kme",
+                    "MDAMB231_Rep4_kme",
+                    "Accession",
+                    "Format2",
+                    "Format3",
+                    "Description")
+
+
+#Normalizing to protein abundance
+
+#Pulling out accession
+
+y<- as.vector(trig.kme$Accession)
+
+y<- y[!duplicated(y)]
+
+x<- trig.prot[trig.prot$Accession %in% y,]
+
+trig.kme<- inner_join(trig.kme, x, by = "Accession")
+
+trig.kme<- trig.kme[,c(1:37)]
+
+
+#HCC1806
+trig.kme$Norm_HCC1806_Rep1<- trig.kme$HCC1806_Rep1_kme/trig.kme$HCC1806_Rep1
+trig.kme$Norm_HCC1806_Rep2<- trig.kme$HCC1806_Rep2_kme/trig.kme$HCC1806_Rep2
+trig.kme$Norm_HCC1806_Rep3<- trig.kme$HCC1806_Rep3_kme/trig.kme$HCC1806_Rep3
+trig.kme$Norm_HCC1806_Rep4<- trig.kme$HCC1806_Rep4_kme/trig.kme$HCC1806_Rep4
+
+#MCF10A
+trig.kme$Norm_MCF10A_Rep1<- trig.kme$MCF10A_Rep1_kme/trig.kme$MCF10A_Rep1
+trig.kme$Norm_MCF10A_Rep2<- trig.kme$MCF10A_Rep2_kme/trig.kme$MCF10A_Rep2
+trig.kme$Norm_MCF10A_Rep3<- trig.kme$MCF10A_Rep3_kme/trig.kme$MCF10A_Rep3
+trig.kme$Norm_MCF10A_Rep4<- trig.kme$MCF10A_Rep4_kme/trig.kme$MCF10A_Rep4
+
+#MCF7
+trig.kme$Norm_MCF7_Rep1<- trig.kme$MCF7_Rep1_kme/trig.kme$MCF7_Rep1
+trig.kme$Norm_MCF7_Rep2<- trig.kme$MCF7_Rep2_kme/trig.kme$MCF7_Rep2
+trig.kme$Norm_MCF7_Rep3<- trig.kme$MCF7_Rep3_kme/trig.kme$MCF7_Rep3
+trig.kme$Norm_MCF7_Rep4<- trig.kme$MCF7_Rep4_kme/trig.kme$MCF7_Rep4
+
+#MCF7
+trig.kme$Norm_MDAMB231_Rep1<- trig.kme$MDAMB231_Rep1_kme/trig.kme$MDAMB231_Rep1
+trig.kme$Norm_MDAMB231_Rep2<- trig.kme$MDAMB231_Rep2_kme/trig.kme$MDAMB231_Rep2
+trig.kme$Norm_MDAMB231_Rep3<- trig.kme$MDAMB231_Rep3_kme/trig.kme$MDAMB231_Rep3
+trig.kme$Norm_MDAMB231_Rep4<- trig.kme$MDAMB231_Rep4_kme/trig.kme$MDAMB231_Rep4
+
+
+#HCC1806 / MCF10A Rep 1
+
+trig.kme$norm_m_hcc1806_rep1<- trig.kme$Norm_HCC1806_Rep1/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_hcc1806_rep2<- trig.kme$Norm_HCC1806_Rep2/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_hcc1806_rep3<- trig.kme$Norm_HCC1806_Rep3/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_hcc1806_rep4<- trig.kme$Norm_HCC1806_Rep4/trig.kme$Norm_MCF10A_Rep1
+
+#MCF7/ MCF10A Rep 1
+trig.kme$norm_m_mcf7_rep1<- trig.kme$Norm_MCF7_Rep1/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mcf7_rep2<- trig.kme$Norm_MCF7_Rep2/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mcf7_rep3<- trig.kme$Norm_MCF7_Rep3/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mcf7_rep4<- trig.kme$Norm_MCF7_Rep4/trig.kme$Norm_MCF10A_Rep1
+
+
+#MDAMB231/ MCF10A Rep 1
+trig.kme$norm_m_mdam_rep1<- trig.kme$Norm_MDAMB231_Rep1/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mdam_rep2<- trig.kme$Norm_MDAMB231_Rep2/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mdam_rep3<- trig.kme$Norm_MDAMB231_Rep3/trig.kme$Norm_MCF10A_Rep1
+trig.kme$norm_m_mdam_rep4<- trig.kme$Norm_MDAMB231_Rep4/trig.kme$Norm_MCF10A_Rep1
+
+#MCF10A/ MCF10A Rep 1
+#trig.kme$norm_m_mcf10a_rep1<- trig.kme$Norm_MCF10A_Rep1/trig.kme$Norm_MCF10A_Rep1
+#trig.kme$norm_m_mcf10a_rep2<- trig.kme$Norm_MCF10A_Rep2/trig.kme$Norm_MCF10A_Rep1
+#trig.kme$norm_m_mcf10a_rep3<- trig.kme$Norm_MCF10A_Rep3/trig.kme$Norm_MCF10A_Rep1
+#trig.kme$norm_m_mcf10a_rep4<- trig.kme$Norm_MCF10A_Rep4/trig.kme$Norm_MCF10A_Rep1
+
+#HCC1806 mean and sd
+
+trig.kme$hcc1806_mean<- rowMeans(trig.kme[,c(1:4)])
+trig.kme$hcc1806_sd<-apply(trig.kme[,1:4], 1, sd)
+
+#MCF7 mean and sd
+
+trig.kme$mcf7_mean<- rowMeans(trig.kme[,c(9:12)])
+trig.kme$mcf7_sd<-apply(trig.kme[,9:12], 1, sd)
+
+#MDAMB231 mean and sd
+
+trig.kme$mdam_mean<- rowMeans(trig.kme[,c(13:16)])
+trig.kme$mdam_sd<-apply(trig.kme[,13:16], 1, sd)
+
+
+#MCF10A mean and sd
+
+trig.kme$mcf10a_mean<- rowMeans(trig.kme[,c(5:8)])
+trig.kme$mcf10a_sd<-apply(trig.kme[,5:8], 1, sd)
+
+#HCC1806 mean and sd Normalized to Protein
+
+trig.kme$hcc1806_norm_mean<- rowMeans(trig.kme[,c(38:41)])
+trig.kme$hcc1806_norm_sd<-apply(trig.kme[,38:41], 1, sd)
+
+#MCF7 mean and sd Normalized to Protein
+
+trig.kme$mcf7_norm_mean<- rowMeans(trig.kme[,c(46:49)])
+trig.kme$mcf7_norm_sd<-apply(trig.kme[,46:49], 1, sd)
+
+#MDAMB231 mean and sd Normalized to Protein
+
+trig.kme$mdam_norm_mean<- rowMeans(trig.kme[,c(50:53)])
+trig.kme$mdam_norm_sd<-apply(trig.kme[,50:53], 1, sd)
+
+
+#MCF10A mean and sd Normalized to Protein
+
+trig.kme$mcf10a_norm_mean<- rowMeans(trig.kme[,c(42:45)])
+trig.kme$mcf10a_norm_sd<-apply(trig.kme[,42:45], 1, sd)
+
+
+trig.kme<- na.omit(trig.kme)
+trig.kme$Format4<- paste0(trig.kme$Format3, "-", rownames(trig.kme))
+
+trig.kme<- na.omit(trig.kme)
+
+#Tukey
+trig.kme.2<- trig.kme[,c(82,38:53)]
+
+colnames(trig.kme.2)<- c("Format4",
+                     "HCC1806_Rep1",
+                    "HCC1806_Rep2",
+                    "HCC1806_Rep3",
+                    "HCC1806_Rep4",
+                    "MCF10A_Rep1",
+                    "MCF10A_Rep2",
+                    "MCF10A_Rep3",
+                    "MCF10A_Rep4",
+                    "MCF7_Rep1",
+                    "MCF7_Rep2",
+                    "MCF7_Rep3",
+                    "MCF7_Rep4",
+                    "MDAMB231_Rep1",
+                    "MDAMB231_Rep2",
+                    "MDAMB231_Rep3",
+                    "MDAMB231_Rep4"
+                    )
+
+trig.kme.2<- as.data.frame(t(trig.kme.2))
+
+
+colnames(trig.kme.2)<- trig.kme.2[1,]
+trig.kme.2<- trig.kme.2[-c(1),]
+
+trig.kme.2$type<- rownames(trig.kme.2)
+
+trig.kme.2<- trig.kme.2[,c(170,1:169)]
+
+trig.kme.2$type<- gsub("\\_.*","", trig.kme.2$type)
+
+
+  anova <- aov(trig.kme.2[,2] ~ type, data = trig.kme.2)
+  tukey <- TukeyHSD(anova)
+  prot_pairwise<- as.data.frame(t(tukey$type[, "p adj"]))
+  rownames(prot_pairwise)<- colnames(trig.kme.2[2])
+
+for (i in 3:ncol(trig.kme.2)){
+  #Pull gene name from column heading
+  column <- names(trig.kme.2[i])
+  #Run anova on the column against the type
+  anova <- aov(trig.kme.2[,i] ~ type, data = trig.kme.2)
+  #Run the tukey on the anova
+  tukey <- TukeyHSD(anova)
+  #Pull out the p value for every comparison and make it in a dataframe
+  y<- as.data.frame(t(tukey$type[, "p adj"]))
+  #put the rowname as the gene name
+  rownames(y)<- colnames(trig.kme.2[i])
+  #combine with pre-initiated dataframe
+  prot_pairwise<- rbind(prot_pairwise,y)
+  #return the df
+}
+
+  
+  n<- vector()
+anova_run<- apply(trig.kme.2[,2:ncol(trig.kme.2)],2, function(a){
+
+x<- aov(a~type, data = trig.kme.2)
+summary(x)
+y<- summary(x)[[1]][["Pr(>F)"]][[1]]
+n<- append(n,y)
+
+return(n)})
+
+trig.kme$anova_pvalue<- anova_run
+
+trig.kme$fc_mdamb_v_mcf7<- trig.kme$mdam_norm_mean/trig.kme$mcf7_norm_mean
+
+trig.kme$fc_mdamb_v_hcc<- trig.kme$mdam_norm_mean/trig.kme$hcc1806_norm_mean
+
+trig.kme$fc_mdamb_v_mcf10<- trig.kme$mdam_norm_mean/trig.kme$mcf10a_norm_mean
+
+trig.kme$fc_mcf7_v_hcc<- trig.kme$mcf7_norm_mean/trig.kme$hcc1806_norm_mean
+
+trig.kme$fc_mcf7_v_mcf10<- trig.kme$mcf7_norm_mean/trig.kme$mcf10a_norm_mean
+
+trig.kme$fc_hcc_v_mcf10<- trig.kme$hcc1806_norm_mean/trig.kme$mcf10a_norm_mean
+
+
+prot_pairwise$Format4<- rownames(prot_pairwise)
+
+trig.kme<- inner_join(trig.kme, prot_pairwise, by = "Format4")
+
+
+trig.kme<- trig.kme%>%
+  mutate(p.t_mdam_mcf7= case_when(fc_mdamb_v_mcf7 > 1.2& `MDAMB231-MCF7`  <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf7 < 0.83 & `MDAMB231-MCF7` <=0.05 ~"Up in MCF7",
+                                 TRUE ~ "ns"))
+
+trig.kme<- trig.kme%>%
+  mutate(p.t_mdam_hcc= case_when(fc_mdamb_v_hcc > 1.2& `MDAMB231-HCC1806` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_hcc <0.83 & `MDAMB231-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+trig.kme<- trig.kme%>%
+  mutate(p.t_mdam_mcf10= case_when(fc_mdamb_v_mcf10 > 1.2& `MDAMB231-MCF10A` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf10 <0.83 & `MDAMB231-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+trig.kme<- trig.kme%>%
+  mutate(p.t_mcf7_hcc= case_when(fc_mcf7_v_hcc > 1.2& `MCF7-HCC1806` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_hcc <0.83 & `MCF7-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+trig.kme<- trig.kme%>%
+  mutate(p.t_mcf7_mcf10= case_when(fc_mcf7_v_mcf10 > 1.2& `MCF7-MCF10A` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_mcf10 <0.83 & `MCF7-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+trig.kme<- trig.kme%>%
+  mutate(p.t_hcc_mcf10= case_when(fc_hcc_v_mcf10 > 1.2& `MCF10A-HCC1806` <=0.05 ~ "Up in HCC1806",
+                                 fc_hcc_v_mcf10 <0.83 & `MCF10A-HCC1806` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+
+
+
+```
+
+
+# Combining all of the data sets together
+```{r}
+
+no.trig.kme_quant$type<- "No.Trigger"
+trig.kme$type<- "Trigger"
+all.kme<- rbind(no.trig.kme_quant, trig.kme)
+
+write.csv(all.kme, "All Quantified Kme sites.csv") 
+```
+
+
+# Combined analysis
+## Determining number of detected sites
+
+```{r}
+no.trig.kme$type<- "No.Trigger"
+trig.kme.detect$type<- "Trigger"
+
+no.trig.kme<- no.trig.kme[,c(3, 4,56:63)]
+trig.kme.detect<- trig.kme.detect[,c(3,5,61:68)]
+
+all.kme.detect<- rbind(no.trig.kme, trig.kme.detect) #815
+
+#All detected
+
+all.kme.detect<- na.omit(all.kme.detect) #748 Kme sites, including duplicates
+
+#Getting rid of duplciates
+all.kme.detect.unique<- all.kme.detect[!duplicated(all.kme.detect$Format3),] #608 unique sites detected
+
+#number of proteins of the detected
+
+length(unique(all.kme.detect.unique$U1)) #381 proteins
+
+#Number of quantified sites
+length(unique(all.kme$Format3)) #326
+length(unique(all.kme$Accession))
+
+```
+## Venn Diagrams
+
+### Venn Diagram of detected Sites with PhosphoSite
+```{r}
+library(stringr)
+methylation <- read.table("Input/Methylation_site_dataset.txt", header = T, row.names = NULL, sep = "\t")
+
+  y<- methylation[,c(3,5)]
+
+y$position<- substring(y$HU_CHR_LOC, 2, nchar(y$HU_CHR_LOC))
+
+y$position<-str_sub(y$position, 1, nchar(y$position)-3)
+
+y$position<- as.numeric(y$position)
+
+y$Target.Amino.Acid<- substr(y$HU_CHR_LOC, 1, 1)
+
+y<- y%>% filter(Target.Amino.Acid == "K")
+
+y$Format3<- paste0(y$PROTEIN, "-",y$HU_CHR_LOC)
+```
+
+```{r}
+library(VennDiagram)
+list<- list(Detected.Sites = all.kme.detect.unique$Format3,
+        PhosphoSite.Plus = y$Format3)
+
+a<-venn.diagram(
+  list ,
+  category.names = c("Detected Sites" , "PhosphoSite Plus" ),
+  filename = 'Detected kme with PhosphoSite.png',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 3200 , 
+           width = 3200 , 
+          resolution = 600,           
+          compression = "lzw",
+          lwd = 1,
+          col=c("#fd9b30", '#000000'),
+          fill = c(alpha("#fd9b30",0.5), alpha('#000000',0.5)),
+          cex = 1.5,
+          fontfamily = "sans",
+          cat.cex = 1.20,
+          cat.default.pos = "outer",
+          cat.pos = c(9, -10),
+          cat.dist = c(0.045, 0.045),
+          cat.fontfamily = "sans",
+          cat.col = c("#fd9b30", '#000000'),
+  scaled=F
+        )
+
+a
+```
+
+# Venn Diagram of Quantified Sites with PhosphoSite
+
+```{r}
+list<- list(Quantified.Sites = all.kme$Format3,
+        PhosphoSite.Plus = y$Format3)
+
+a<-venn.diagram(
+  list ,
+  category.names = c("Quantified Sites" , "PhosphoSite Plus" ),
+  filename = 'All kme with PhosphoSite.png',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 3200 , 
+           width = 3200 , 
+          resolution = 600,           
+          compression = "lzw",
+          lwd = 1,
+          col=c("#fd9b30", '#000000'),
+          fill = c(alpha("#fd9b30",0.5), alpha('#000000',0.5)),
+          cex = 1.5,
+          fontfamily = "sans",
+          cat.cex = 1.20,
+          cat.default.pos = "outer",
+          cat.pos = c(9, -10),
+          cat.dist = c(0.045, 0.045),
+          cat.fontfamily = "sans",
+          cat.col = c("#fd9b30", '#000000'),
+  scaled=F
+        )
+
+a
+```
+
+# Motif analysis
+## Extracting 7-mer motifs for sequence 
+```{r}
+all.kme[c("Accession", "Position")]<- str_split_fixed(all.kme$Format2, "-",2)
+all.kme[c("AA", "Position")]<- str_split_fixed(all.kme$Position, "-",2)
+all.kme$Position<- gsub("\\K\\.*", "", all.kme$Position)
+```
+
+## Pulling out the motifs not seen in the 7-mer peptide
+```{r Pulling out the sequence}
+# Motif Analysis
+library(UniprotR)
+#version 2.4. Published in 3.2024
+#Functions to extract aa sequences for Uniprot IDs
+
+motif_analysis<- function (df){
+    
+    #Vector of Uniprot IDs
+    
+    IDs <- df[,"Accession"]
+    
+    #Extract aa sequences for each Uniprot ID and store in a new df 
+    
+    Uniprot<- GetSequences(IDs)
+    
+    #Add aa sequences to a new column to df of interest
+    
+    
+  return(Uniprot)
+    
+}
+df_aasequence<- motif_analysis(all.kme)
+
+aasequence<- as.character(df_aasequence$Sequence)
+
+
+df_aasequence$Accession<- rownames(df_aasequence)
+
+y<- df_aasequence[,c(20,15)]
+
+all.kme.motif <- inner_join(all.kme,y, by = "Accession")
+
+all.kme.motif$Position<- as.numeric(as.character(all.kme.motif$Position))
+motif<- c()
+ 
+    for (i in 1:nrow(all.kme.motif)) {
+     
+      
+      #index df by aa sequence and then by +/- 3 positions from methylated residue
+      motif[i] <- print(str_sub(all.kme.motif[i,"Sequence"], 
+                                all.kme.motif[i,"Position"]-3, 
+                                all.kme.motif[i,"Position"]+3))
+      
+     }
+#return df with column containing 7-mer motifs
+all.kme.motif <- cbind(all.kme.motif, motif)
+char <- nchar(all.kme.motif$motif)
+all.kme.motif[,c(107:113)]<- str_split_fixed(all.kme.motif$motif, "", 7)
+  
+write.csv(all.kme.motif, "all.kme with sequences.csv")
+```
+
+
+# PTM Crosstalk
+```{r}
+all.kme<- read.csv("/home/cberry/Documents/BC_TMT Analysis/All Combined Kme sites/All Quantified Kme sites.csv")
+
+# Opening up PhoshphoSite Plus Datasets. Downloaded 5.14.24. Last modified 4.16.24.
+
+phos.text<- read.table("Input/Phosphorylation_site_dataset.txt",header = T, sep = "\t" ,row.names = NULL)
+acetylation.text<- read.table("Input/Acetylation_site_dataset.txt",header = T, sep = "\t",row.names = NULL)
+sumo.text<- read.table("Input/Sumoylation_site_dataset.txt",header = T, sep = "\t",row.names = NULL)
+ubi.text<- read.table("Input/Ubiquitination_site_dataset.txt",header = T, sep = "\t" ,row.names = NULL)
+
+```
+
+```{r}
+library(stringr)
+library(dplyr)
+#Extract Accession and Format 2 from the quantified sites
+all.kme.text<- all.kme[c(18,19)]
+all.kme.text<- all.kme.text[!duplicated(all.kme.text$Format2),]
+#Pull out position
+all.kme.text$position<- sub(".*-", "", all.kme.text$Format2)
+all.kme.text$position<-substring(all.kme.text$position, 2)
+all.kme.text$position<- as.numeric(all.kme.text$position)
+
+ptm_crosstalk<-function(a,x){
+
+  y<- x[,c(3,5)]
+
+y$position<- substring(y$HU_CHR_LOC, 2, nchar(y$HU_CHR_LOC))
+
+y$position<-str_sub(y$position, 1, nchar(y$position)-3)
+
+y$position<- as.numeric(y$position)
+
+y$Target.Amino.Acid<- substr(y$HU_CHR_LOC, 1, 1)
+
+colnames(y)<- c("Accession", "Format2", "position", "Target.Amino.Acid")  
+  
+z<- inner_join(a, y, by = "Accession")
+
+  
+  z<- z%>% group_by(Accession)%>%
+    filter(n()>1)
+  
+  diff<-vector(mode = "numeric", length = 0)
+  
+  
+  for(y in 1:nrow(z)){
+    a<- z$position.x[y]
+    b<- z$position.y[y]
+    c<- abs(a-b)
+    diff<- append(diff, c)
+  }
+  
+  z$diff<- diff
+  
+  c<- filter(z, diff < 10)
+
+return(c)
+  
+}
+
+```
+
+```{r}
+kme.phos<- ptm_crosstalk(all.kme.text, phos.text)
+kme.acet<- ptm_crosstalk(all.kme.text, acetylation.text)
+kme.ubi<- ptm_crosstalk(all.kme.text, ubi.text)
+kme.sumo<- ptm_crosstalk(all.kme.text, sumo.text)
+
+```
+
+```{r}
+ptm_crosstalk_table<- function(x,y,z){
+  #destring y to put in table
+  t<- deparse(substitute(y))
+  
+  
+  a<- as.data.frame(table(x$diff))
+
+a$Norm<- (a$Freq/nrow(y))*100
+
+a$type<- z
+
+return(a)
+  
+}
+
+kme.phos.table<- ptm_crosstalk_table(kme.phos, all.kme.text, "Phosphorylation")
+kme.acet.table<- ptm_crosstalk_table(kme.acet, all.kme.text, "Acetylation")
+kme.ubi.table<- ptm_crosstalk_table(kme.ubi, all.kme.text, "Ubiquitination")
+kme.sumo.table<- ptm_crosstalk_table(kme.sumo, all.kme.text, "Sumoylation")
+
+
+ptm.percentage.sites<- rbind(kme.phos.table,
+                             kme.acet.table,
+                             kme.ubi.table,
+                             kme.sumo.table)
+
+```
+
+```{r ggplot}
+#library(ggplot2)
+#library(ggsci)
+c<- ggplot(ptm.percentage.sites, aes(x = Var1, y = Norm))+
+  geom_bar(aes(fill = type), stat = "identity", color = "black")+
+  facet_grid(~type)+
+  labs(title = "Kme Crosstalk",
+       x = "Number of Amino Acids away from a Reported PTM", 
+       y = "Percentage of Quantified Kme Sites in Dataset")+
+  theme_bw()+
+    theme(legend.position = "none")+
+  scale_fill_jco()
+
+c
+
+ggsave("PTM Crosstalk with all Quantified Sites.eps", c, device = "eps", width = 10, height = 5)
+```
+
+
+

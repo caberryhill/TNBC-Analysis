@@ -1,0 +1,106 @@
+
+```{r}
+# The purpose of this script is to determine how many KDMs were detected within the IP dataset and visualize that
+```
+
+
+```{r opening up the files and setting up the file}
+library(dplyr)
+library(ggplot2)
+
+#List of KDMs
+kdm<- read.csv("Input/KDM_2021.csv")
+
+#IP Protein Summary
+df<- read.csv("Input/IP_ProteinSummary.csv")
+```
+
+
+```{r Extracting IDs from protein and innerjoining}
+
+#KDMs
+ip.kdm<-df %>%
+  filter(Accession %in% kdm$Uniprot.ID)
+
+gene_kdm<- kdm[,c(1,4)]
+
+colnames(gene_kdm)<- c("Accession", "Gene.Name")
+
+ip.kdm<- inner_join(ip.kdm, gene_kdm, by = "Accession")
+
+```
+
+#bargraph and histogram of coverage, peptides, and PSMs
+```{r}
+
+a<- ggplot(ip.kdm, aes(x = reorder(Gene.Name, Coverage....), y = Coverage....))+
+  geom_bar(stat = "identity", color= "black")+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "% Peptide Coverage of KDM",
+       y = "% Coverage",
+       x = "KDM")
+a
+
+b<- ggplot(ip.kdm, aes(x = reorder(Gene.Name, X..PSMs), y = X..PSMs))+
+  geom_bar(stat = "identity", color= "black")+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of PSMs for each KDM",
+       y = "# of PSMs",
+       x = "KDM")
+b
+
+c<- ggplot(ip.kdm, aes(x = reorder(Gene.Name, X..Peptides), y = X..Peptides))+
+  geom_bar(stat = "identity", color= "black")+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of Peptides for each KDM",
+       y = "# of Peptides",
+       x = "KDM")
+c
+
+figure<- ggarrange(a, b, c,
+                   ncol = 2,nrow = 2)
+
+figure
+
+ggsave("KDM IP stats.png", figure, device = "png", width = 10, height = 7)
+ggsave("KDM IP stats.eps", figure, device = "eps", width = 10, height = 7)
+
+```
+
+
+
+
+
+
+#KDMs with Trigger Channel
+```{r}
+
+library(dplyr)
+
+
+kdm<- read.csv("/home/cberry/Documents/TNBC_SILAC_Analysis/Analysis/KMT and KDM/KDM_2021.csv")
+kdm.vector<- as.vector(kdm$Uniprot.ID)
+trig<- read.csv("/home/cberry/Documents/BC_TMT Analysis/BC Analysis/2024_01_08_ExplorisFAIMSaurora_CornettwithTrigger.csv")
+```
+
+
+```{r Extracting IDs from tmt protein and innerjoining}
+
+bc.kdm<-trig %>%
+  filter(Accession %in% kdm.vector)
+
+
+gene_kdm<- kdm[,c(1,4)]
+
+colnames(gene_kdm)<- c("Accession", "Gene.Name")
+
+bc.kdm<- inner_join( bc.kdm, gene_kdm, by = "Accession")
+
+bc.kdm.quant<- na.omit(bc.kdm)
+```
+
+
+

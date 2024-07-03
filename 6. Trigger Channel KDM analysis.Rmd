@@ -1,0 +1,220 @@
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(reshape2)
+library(rstatix)
+library(ggsimplestats)
+library(pheatmap)
+kdm<- read.csv("Input/KDM_2021.csv")
+kdm.vector<- as.vector(kdm$Uniprot.ID)
+gene_kdm<- kdm[,c(1,4)]
+colnames(gene_kdm)<- c("Accession", "Gene.Name")
+
+
+trig_df<- read.csv("Input/Trigger_channel_prot_stats_combined reps.csv")
+trig_df<- trig_df[,-c(1)]
+
+
+```
+
+# Pheatmaps
+```{r all protein averages}
+
+#First pass
+trig_df.kdm<-trig_df %>%
+  filter(Accession %in% kdm.vector)
+trig_df.kdm<- inner_join( trig_df.kdm, gene_kdm, by = "Accession")
+
+#Statistically sig KDMs:
+
+#FC >1.2, <0.83; 0.05 p
+#KDM4B: Up in 231 vs all
+#KDM5C: Up in 231 vs all
+#KDM3A: Up in 231 vs all
+#KDM5D: Up in 231 vs 1806
+#JMJD5: Up in 231 vs HCC1806
+#KDM5A: Up in 231 vs 1806 and MCF10A
+#KDM4C: Up in 231 vs 1806 and MCF10A
+#KDM1A:Up in MCF7 vs all. HCC1806 vs. MCF10A & MDAMB231 
+
+```
+## Z score of the averages
+```{r}
+kdm_fc_pheat<- trig_df.kdm[,c(48,25,21,19,23)]
+
+cal_z_score <- function(x){
+ (x - mean(x)) / sd(x)
+}
+#Pulling out protein name and the normalized averages: MCF10A, MCF7, Hcc1806, and MDAMB231
+
+kdm_fc_pheat<-do.call(data.frame,lapply(kdm_fc_pheat, function(x) replace(x, is.infinite(x),NA)))
+
+kdm_fc_pheat<- na.omit(kdm_fc_pheat)
+rownames(kdm_fc_pheat)<- kdm_fc_pheat[,c(1)]
+
+kdm_fc_pheat<- kdm_fc_pheat[,-c(1)]
+
+kdm_fc_pheat_heatmap <- t(apply(kdm_fc_pheat, 1, cal_z_score)) # apply (df)
+kdm_fc_pheat_heatmap <- na.omit(kdm_fc_pheat_heatmap)
+kdm_fc_pheat_heatmap<-as.data.frame(t(kdm_fc_pheat_heatmap))
+
+#Making the heatmap
+paletteLength <- 30
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(kdm_fc_pheat_heatmap), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(kdm_fc_pheat_heatmap)/paletteLength, max(kdm_fc_pheat_heatmap), length.out=floor(paletteLength/2)))
+
+#svg("Trigger Channel KDM z-score heatmap.svg", height = 5, width = 10)
+
+b<- pheatmap(kdm_fc_pheat_heatmap,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 20,
+             cellheight =20,
+             fontsize_row = 12,
+             main = "Z-score KDM Average Abundance",
+             #cutree_rows = 2,
+             border_color = NA,
+             cluster_cols = T,
+             legend_breaks =c(-1.48,-1.25,-1,-0.75,-0.5,-0.25,0,0.25,0.5,0.75,1,1.25,1.49),
+             labels_row = c("MCF10A", "MCF7","HCC1806","MDAMB231"))
+
+#dev.off()
+b
+```
+
+## Replicate abundances
+```{r}
+kdm_fc_pheat<- trig_df.kdm[,c(48,2:17)]
+
+#Pulling out Format 4 and the normalized averages: MCF10A, MCF7, Hcc1806, and MDAMB231
+
+kdm_fc_pheat<-do.call(data.frame,lapply(kdm_fc_pheat, function(x) replace(x, is.infinite(x),NA)))
+
+kdm_fc_pheat<- na.omit(kdm_fc_pheat)
+rownames(kdm_fc_pheat)<- kdm_fc_pheat[,c(1)]
+
+kdm_fc_pheat<- kdm_fc_pheat[,-c(1)]
+
+kdm_fc_pheat_heatmap<-as.data.frame(t(kdm_fc_pheat))
+
+#Making the heatmap
+paletteLength <- 30
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(kdm_fc_pheat_heatmap), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(kdm_fc_pheat_heatmap)/paletteLength, max(kdm_fc_pheat_heatmap), length.out=floor(paletteLength/2)))
+
+#svg("Trigger Channel KDM replicate abundance heatmap no rep clustering.svg", height = 10, width = 10)
+
+d<- pheatmap(kdm_fc_pheat_heatmap,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 20,
+             cellheight =20,
+             fontsize_row = 12,
+             main = "KDM Average Protein Abundance",
+             #cutree_rows = 2,
+             border_color = NA,
+             cluster_cols = T,
+             #cluster_rows = F,
+             #legend_breaks =c(-1.48,-1.25,-1,-0.75,-0.5,-0.25,0,0.25,0.5,0.75,1,1.25,1.49),
+             labels_row = c("HCC1806 Rep 1", "HCC1806 Rep 2","HCC1806 Rep 3","HCC1806 Rep 4",
+                            "MCF10A Rep 1","MCF10A Rep 2","MCF10A Rep 3","MCF10A Rep 4",
+                            "MCF7 Rep 1","MCF7 Rep 2","MCF7 Rep 3","MCF7 Rep 4",
+                            "MDAMB231 Rep 1","MDAMB231 Rep 2","MDAMB231 Rep 3","MDAMB231 Rep 4"))
+
+#dev.off()
+d
+```
+
+## z score of the replicates abundances
+```{r}
+kdm_fc_pheat<- trig_df.kdm[,c(48,2:17)]
+
+#Pulling out Format 4 and the normalized averages: MCF10A, MCF7, Hcc1806, and MDAMB231
+
+kdm_fc_pheat<-do.call(data.frame,lapply(kdm_fc_pheat, function(x) replace(x, is.infinite(x),NA)))
+
+cal_z_score <- function(x){
+ (x - mean(x)) / sd(x)
+}
+
+kdm_fc_pheat<- na.omit(kdm_fc_pheat)
+rownames(kdm_fc_pheat)<- kdm_fc_pheat[,c(1)]
+kdm_fc_pheat<- kdm_fc_pheat[,-c(1)]
+kdm_fc_pheat_heatmap <- t(apply(kdm_fc_pheat, 1, cal_z_score)) # apply (df)
+kdm_fc_pheat_heatmap<-as.data.frame(t(kdm_fc_pheat_heatmap))
+
+#Making the heatmap
+paletteLength <- 30
+
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(kdm_fc_pheat_heatmap), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(kdm_fc_pheat_heatmap)/paletteLength, max(kdm_fc_pheat_heatmap), length.out=floor(paletteLength/2)))
+
+svg("Trigger Channel KDM replicate z score abundance heatmap.svg", height = 10, width = 10)
+
+e<- pheatmap(kdm_fc_pheat_heatmap,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 20,
+             cellheight =20,
+             fontsize_row = 12,
+             main = "Z-score KDM Replicate Protein Abundance",
+             #cutree_rows = 2,
+             border_color = NA,
+             cluster_cols = T,
+             #cluster_rows = F,
+             #legend_breaks =c(-1.48,-1.25,-1,-0.75,-0.5,-0.25,0,0.25,0.5,0.75,1,1.25,1.49),
+             labels_row = c("HCC1806 Rep 1", "HCC1806 Rep 2","HCC1806 Rep 3","HCC1806 Rep 4",
+                            "MCF10A Rep 1","MCF10A Rep 2","MCF10A Rep 3","MCF10A Rep 4",
+                            "MCF7 Rep 1","MCF7 Rep 2","MCF7 Rep 3","MCF7 Rep 4",
+                            "MDAMB231 Rep 1","MDAMB231 Rep 2","MDAMB231 Rep 3","MDAMB231 Rep 4"))
+
+dev.off()
+e
+```
+
+# Generating boxplots with anovas and tukeys for all the KDMs
+## Setting up the df
+```{r}
+trig_df.kdm_a<- trig_df.kdm[,c(1:17,48)]
+colnames(trig_df.kdm_a)<- c("Accession",
+                       "HCC1806_Rep1", "HCC1806_Rep2","HCC1806_Rep3","HCC1806_Rep4",
+                       "MCF10A_Rep1","MCF10A_Rep2","MCF10A_Rep3","MCF10A_Rep4",
+                       "MCF7_Rep1","MCF7_Rep2","MCF7_Rep3","MCF7_Rep4",
+                       "MDAMB231_Rep1","MDAMB231_Rep2","MDAMB231_Rep3","MDAMB231_Rep4","Gene.Name")
+
+df<- melt(trig_df.kdm_a)
+df$cell<- gsub("_.*","", df$variable)
+df$Rep<- gsub(".*_","", df$variable)
+
+```
+
+## All KDMs with the Trigger Channel
+```{r}
+group.colors = c(MDAMB231 = "#3ca603", MCF7 = "#26b3ff", HCC1806 = "#674ea7", MCF10A = "#cc0000")
+
+a.plot<- ggplot(df, aes(x = cell, y = (value), group = cell, fill = cell))+
+  geom_boxplot()+
+  geom_jitter(aes(shape = Rep, size = 2))+
+  facet_wrap(vars(Gene.Name), scales = "free")+
+  theme_bw()+
+  scale_fill_manual(values = group.colors)+
+    labs(title = "KDMs Quantified using a Trigger Channel",
+         y = "Normalized Protein Abundance",
+         x = "")+
+  stat_tukeyHSD(step.increase = 0.1,
+                vjust = -0.1)+
+  scale_y_continuous(expand = expansion(mult = c(0.1,0.325)))+
+  stat_compare_means(method = "anova",vjust = -5)
+
+a.plot
+#ggsave("All.Kdms.jitter.with.trigger.eps", a.plot,device = "eps", width = 20, height = 20)  
+#ggsave("All.Kdms.jitter.with.trigger.png", a.plot,device = "png", width = 20, height = 20)  
+
+```
+

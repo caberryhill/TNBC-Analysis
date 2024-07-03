@@ -1,0 +1,339 @@
+```{r opening up the files and setting up the file}
+library(GGally)
+library(dplyr)
+
+bc_protein<- read.csv("Input/No bcger Channel Protein Summary.csv")
+```
+#Setting Up
+
+# Number of proteins and quantified proteins for filtered detected proteins w/o bcger channel
+```{r}
+#With bcger
+
+bc_clean<-bc_protein%>%
+  filter(X..Unique.Peptides >1)
+
+bc_clean<- bc_clean%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+
+bc_clean<- bc_clean%>%
+  filter(!grepl("CONTAMINANT",Description ))
+
+# Quantified
+bc_protein_clean_2<- bc_protein_clean[complete.cases(bc_protein_clean[,c(35:50)]),]
+
+# of Detected proteins:4208
+# of Quantified proteins: 4139
+
+
+```
+
+
+#Normalizing to mcf10a rep 1 and then averaging
+```{r tmt}
+
+#Filter for proteins with high FDR, more than 1 peptide, and not a contaminent
+bc_protein<-bc_protein%>%
+  filter(X..Unique.Peptides >1)
+
+bc_protein<- bc_protein%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+
+bc_protein<- bc_protein %>%
+  filter(!grepl("CONTAMINANT", Description))
+
+bc_df<- bc_protein[complete.cases(bc_protein[,c(35:50)]),]
+
+bc_df<- bc_protein[,c(35:50)]
+
+bc_df<- bc_df +0.1
+
+colnames(bc_df)<- c(
+                    "HCC1806_Rep1",
+                    "HCC1806_Rep2",
+                    "HCC1806_Rep3",
+                    "HCC1806_Rep4",
+                    "MCF10A_Rep1",
+                    "MCF10A_Rep2",
+                    "MCF10A_Rep3",
+                    "MCF10A_Rep4",
+                    "MCF7_Rep1",
+                    "MCF7_Rep2",
+                    "MCF7_Rep3",
+                    "MCF7_Rep4",
+                    "MDAMB231_Rep1",
+                    "MDAMB231_Rep2",
+                    "MDAMB231_Rep3",
+                    "MDAMB231_Rep4")
+bc_df$Accession<- bc_protein$Accession
+bc_df<- bc_df[,c(17,1:16)]
+bc_df$Description<- bc_protein$Description
+
+#HCC1806 / MCF10A Rep 1
+
+bc_df$norm_hcc1806_rep1<- bc_df$HCC1806_Rep1/bc_df$MCF10A_Rep1
+bc_df$norm_hcc1806_rep2<- bc_df$HCC1806_Rep2/bc_df$MCF10A_Rep1
+bc_df$norm_hcc1806_rep3<- bc_df$HCC1806_Rep3/bc_df$MCF10A_Rep1
+bc_df$norm_hcc1806_rep4<- bc_df$HCC1806_Rep4/bc_df$MCF10A_Rep1
+
+#HCC1806 mean and sd
+
+bc_df$hcc1806_mean<- rowMeans(bc_df[,c(2:5)])
+bc_df$hcc1806_sd<-apply(bc_df[,2:5], 1, sd)
+
+#MCF7/ MCF10A Rep 1
+bc_df$norm_mcf7_rep1<- bc_df$MCF7_Rep1/bc_df$MCF10A_Rep1
+bc_df$norm_mcf7_rep2<- bc_df$MCF7_Rep2/bc_df$MCF10A_Rep1
+bc_df$norm_mcf7_rep3<- bc_df$MCF7_Rep3/bc_df$MCF10A_Rep1
+bc_df$norm_mcf7_rep4<- bc_df$MCF7_Rep4/bc_df$MCF10A_Rep1
+
+#MCF7 mean and sd
+
+bc_df$mcf7_mean<- rowMeans(bc_df[,c(10:13)])
+bc_df$mcf7_sd<-apply(bc_df[,10:13], 1, sd)
+
+#MDAMB231/ MCF10A Rep 1
+bc_df$norm_mdam_rep1<- bc_df$MDAMB231_Rep1/bc_df$MCF10A_Rep1
+bc_df$norm_mdam_rep2<- bc_df$MDAMB231_Rep2/bc_df$MCF10A_Rep1
+bc_df$norm_mdam_rep3<- bc_df$MDAMB231_Rep3/bc_df$MCF10A_Rep1
+bc_df$norm_mdam_rep4<- bc_df$MDAMB231_Rep4/bc_df$MCF10A_Rep1
+
+#MDAMB231 mean and sd
+
+bc_df$mdam_mean<- rowMeans(bc_df[,c(14:17)])
+bc_df$mdam_sd<-apply(bc_df[,14:17], 1, sd)
+
+#MCF10A/ MCF10A Rep 1
+bc_df$norm_mcf10a_rep1<- bc_df$MCF10A_Rep1/bc_df$MCF10A_Rep1
+bc_df$norm_mcf10a_rep2<- bc_df$MCF10A_Rep2/bc_df$MCF10A_Rep1
+bc_df$norm_mcf10a_rep3<- bc_df$MCF10A_Rep3/bc_df$MCF10A_Rep1
+bc_df$norm_mcf10a_rep4<- bc_df$MCF10A_Rep4/bc_df$MCF10A_Rep1
+
+#MCF10A mean and sd
+
+bc_df$mcf10a_mean<- rowMeans(bc_df[,c(6:9)])
+bc_df$mcf10a_sd<-apply(bc_df[,6:9], 1, sd)
+
+
+#Normalized to MCF10A averages
+
+bc_df$hcc1806_norm<- bc_df$hcc1806_mean/bc_df$mcf10a_mean
+bc_df$mcf7_norm<- bc_df$mcf7_mean/bc_df$mcf10a_mean
+bc_df$mdam_norm<- bc_df$mdam_mean/bc_df$mcf10a_mean
+
+bc_df<- na.omit(bc_df)
+```
+
+
+```{r linear model across biological replicates}
+
+x_MCF10a<- bc_df[,c(6:9)]
+x_HCC1806<- bc_df[,c(2:5)]
+x_MCF7<- bc_df[,c(10:13)]
+x_MDAM<- bc_df[,c(14:17)]
+
+a<-ggpairs(log2(x_MCF10a),
+        title = "Correlation between MCF10A Replicates with TC",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("Rep 1", "Rep2","Rep 3", "Rep 4"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+b<-ggpairs(log2(x_HCC1806),
+        title = "Correlation between HCC1806 Replicates with TC",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("Rep 1", "Rep2","Rep 3", "Rep 4"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+c<-ggpairs(log2(x_MCF7),
+        title = "Correlation between MCF7 Replicates with TC",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("Rep 1", "Rep2","Rep 3", "Rep 4"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+d<-ggpairs(log2(x_MDAM),
+        title = "Correlation between MDAMB231 Replicates with TC",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("Rep 1", "Rep2","Rep 3", "Rep 4"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+a
+b
+c
+d
+ggsave("GGpairs linear modeling MCF10A prot.eps", a, device = "eps", height = 5, width = 5)
+ggsave("GGpairs linear modeling HCC1806 prot.eps", b, device = "eps", height = 5, width = 5)
+ggsave("GGpairs linear modeling MCF7 prot.eps", c, device = "eps", height = 5, width =5 )
+ggsave("GGpairs linear modeling MDAMB231 prot.eps", d, device = "eps", height = 5, width =5 )
+
+
+```
+
+# Linear Correlation between the averages of the 4 cell types 
+```{r}
+bc_df_combine<- bc_df[,c(41,23,29,35)]
+
+e<-ggpairs(log2(bc_df_combine),
+        title = "Correlation between the replicate averages",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("MCF10A", "HCC1806","MCF7", "MDAMB231"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+e
+
+ggsave("GGpairs linear modeling Subtype prot log2.eps", e, device = "eps", height = 5, width =5 )
+
+```
+
+
+#ANOVAs and Tukeys
+```{r set up df}
+bc_df_2<- na.omit(bc_df)
+
+bc_df_2<- bc_df_2[,c(1:17)]
+
+#rownames(bc_df_2)<- bc_df_2[,c(1)]
+#bc_df_2<- bc_df_2[,c(2:17)]+1
+
+
+bc_df_t<- as.data.frame(t(bc_df_2))
+
+
+colnames(bc_df_t)<- bc_df_t[1,]
+bc_df_t<- bc_df_t[-c(1),]
+
+bc_df_t$type<- rownames(bc_df_t)
+
+bc_df_t<- bc_df_t[,c(4132,1:4131)]
+
+bc_df_t$type<- gsub("\\_.*","", bc_df_t$type)
+
+```
+
+
+# TUKEY Analysis
+```{r Tukey analysis resulting in a df with all pairwise comparisons}
+#start off by doing anova on first entry in order to initiate the df with the proper column titles
+
+  anova <- aov(bc_df_t[,2] ~ type, data = bc_df_t)
+  tukey <- TukeyHSD(anova)
+  prot_pairwise<- as.data.frame(t(tukey$type[, "p adj"]))
+  rownames(prot_pairwise)<- colnames(bc_df_t[2])
+
+for (i in 3:ncol(bc_df_t)){
+  #Pull gene name from column heading
+  column <- names(bc_df_t[i])
+  #Run anova on the column against the type
+  anova <- aov(bc_df_t[,i] ~ type, data = bc_df_t)
+  #Run the tukey on the anova
+  tukey <- TukeyHSD(anova)
+  #Pull out the p value for every comparison and make it in a dataframe
+  y<- as.data.frame(t(tukey$type[, "p adj"]))
+  #put the rowname as the gene name
+  rownames(y)<- colnames(bc_df_t[i])
+  #combine with pre-initiated dataframe
+  prot_pairwise<- rbind(prot_pairwise,y)
+  #return the df
+}
+```
+
+# ANOVA Analysis
+```{r ANOVA Loop}
+#Create a vector of all the anova p values to pull out proteins to do Tukey test on
+
+n<- vector()
+anova_run<- apply(bc_df_t[,2:ncol(bc_df_t)],2, function(a){
+
+x<- aov(a~type, data = bc_df_t)
+summary(x)
+y<- summary(x)[[1]][["Pr(>F)"]][[1]]
+n<- append(n,y)
+
+return(n)})
+
+bc_df_t_2<- as.data.frame(t(bc_df_t))
+
+bc_df_t_2<- bc_df_t_2[-c(1),]
+
+bc_df_t_2$anova_pvalue<- anova_run
+
+```
+
+
+# Creating df with FC's against each other and adding in p values and FDR adjust p values
+```{r FC}
+bc_df$fc_mdamb_v_mcf7<- bc_df$mdam_mean/bc_df$mcf7_mean
+
+bc_df$fc_mdamb_v_hcc<- bc_df$mdam_mean/bc_df$hcc1806_mean
+
+bc_df$fc_mdamb_v_mcf10<- bc_df$mdam_mean/bc_df$mcf10a_mean
+
+bc_df$fc_mcf7_v_hcc<- bc_df$mcf7_mean/bc_df$hcc1806_mean
+
+bc_df$fc_mcf7_v_mcf10<- bc_df$mcf7_mean/bc_df$mcf10a_mean
+
+bc_df$fc_hcc_v_mcf10<- bc_df$hcc1806_mean/bc_df$mcf10a_mean
+
+
+prot_pairwise$Accession<- rownames(prot_pairwise)
+
+bc_df<- inner_join(bc_df, prot_pairwise, by = "Accession")
+```
+
+# Statistical significant
+```{r creating mutant columns with up and down}
+
+#truncating df to both FC columns and padj columns
+
+bc_df<- bc_df%>%
+  mutate(p.t_mdam_mcf7= case_when(fc_mdamb_v_mcf7 > 1.2& `MDAMB231-MCF7`  <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf7 < 0.83 & `MDAMB231-MCF7` <=0.05 ~"Up in MCF7",
+                                 TRUE ~ "ns"))
+
+bc_df<- bc_df%>%
+  mutate(p.t_mdam_hcc= case_when(fc_mdamb_v_hcc > 1.2& `MDAMB231-HCC1806` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_hcc <0.83 & `MDAMB231-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+bc_df<- bc_df%>%
+  mutate(p.t_mdam_mcf10= case_when(fc_mdamb_v_mcf10 > 1.2& `MDAMB231-MCF10A` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf10 <0.83 & `MDAMB231-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+bc_df<- bc_df%>%
+  mutate(p.t_mcf7_hcc= case_when(fc_mcf7_v_hcc > 1.2 & `MCF7-HCC1806` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_hcc <0.83 & `MCF7-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+bc_df<- bc_df%>%
+  mutate(p.t_mcf7_mcf10= case_when(fc_mcf7_v_mcf10 > 1.2& `MCF7-MCF10A` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_mcf10 <0.83 & `MCF7-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+bc_df<- bc_df%>%
+  mutate(p.t_hcc_mcf10= case_when(fc_hcc_v_mcf10 > 1.2& `MCF10A-HCC1806` <=0.05 ~ "Up in HCC1806",
+                                 fc_hcc_v_mcf10 <0.83 & `MCF10A-HCC1806` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+
+bc_df%>%
+  count(p.t_mdam_mcf7)
+bc_df%>%
+  count(p.t_mdam_hcc)
+bc_df%>%
+  count(p.t_mdam_mcf10)
+bc_df%>%
+  count(p.t_mcf7_hcc)
+bc_df%>%
+  count(p.t_mcf7_mcf10)
+bc_df%>%
+  count(p.t_hcc_mcf10)
+
+#Writing a csv
+#write.csv(trig_df, "No Trigger_channel_prot_stats.csv")
+```
+

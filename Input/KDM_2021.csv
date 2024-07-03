@@ -1,0 +1,31 @@
+Uniprot ID,Ensembl ID,Protein Name,Gene Name,Gene Name Aliases,,,,,,Substrates Reported on Uniprot (January 2021)
+Q7LBC6,ENSG00000120733,Lysine-specific demethylase 3 B,KDM3B,JMJD1B,JHDM2B,,KIAA1082,,,Demethylates H3K9
+Q9Y4C1,ENSG00000115548,Lysine-specific demethylase 3A,KDM3A,JMJD1A,JHDM2A,JMJD1,KIAA0742,,,"Demethylates H3K9me -1 and -2, preferring dimethylation. "
+Q15652,ENSG00000171988,Probable JmjC domain-containing histone demethylation protein C,JMJD1C,JHDM2C,KIAA1380,TRIP8,,,,Demethylates H3K9
+Q8NHM5,ENSG00000089094,Lysine-specific demethylase 2B,KDM2B,FBXL10,CXXC2,FBL10,JHDM1B,NDY1,PCCX2,Demethylates H3K4 and K3K36. Prefers H3K4me3 and K3K36me2. Binds transcibed region of ribosomal RNA and represses transcription of ribosomal RNA genes which inhibits cell growth and proliferation. 
+Q9Y2K7,ENSG00000173120,Lysine-specific demethylase 2A,KDM2A,FBXL11,CXXC8,FBL7,FBXL11,JHDM1A,KIAA1004,Demethylates H3K36. Prefers H3K36me2. May bind phosphorylated proteins to promote ubiquitination and degradation. 
+Q9UPP1,ENSG00000172943,Histone lysine demethylase PHF8,PHF8,K1AA1111,ZNF422,,,,,"Demethylates H3K9me1 and me2, H3K27me2, H4K20me1. Binds H3K4me3"
+O75151,ENGS00000197724,Histone lysine demethylase PHF8,PHF2,CENP-35,KIAA0662,,,,,"Demethylates ARID5B, H3K9me2, H3K4me3"
+Q6ZMT4,ENSG00000006459,Lysine-specific demethylase 7A,JHDM1D,KIAA1718,KDM7A,KDM7,,,,"Demethylates H3K9me2 and H3K27me2, H2K20me1, H3K4me3"
+Q9H6W3,ENSG00000170468,Ribosomal oxygenase 1,NO66,FLJ21802,RIOX1,MAPJD,C14orf169,,,"Both a lysine demethylase and ribosomal histidine hydroxylase. Demethylates H3K4, H3K36. Prefers H3K4me3, H3K4me1. Weak for H3K36me2"
+Q8IUF8,ENSG00000170854,Ribosomal oxygenase 2,MINA,RIOX2,MINA53,MDIG,NO52,,,Both a lysine demethylase and ribosomal histidine hydroxylase. Demethylates H3K9me3
+Q9BY66,ENSG00000012817,Lysine-specific demethylase 5D,KDM5D,JARID1D,HY,HYA,KIAA0234,SMCY,,Demethylates H3K4 me2 and me3
+P41229,ENSG00000126012,Lysine-specific demethylase 5C,KDM5C,JARID1C,DXS1272E,SMCX,XE169,,,Demethylates H3K4 me2 and me3
+Q9UGL1,ENSG00000117139,Lysine-specific demethylase 5B,KDM5B,JARID1B,PLU1,RBBP2H1,,,,"Demethylates H3K4 me1, me2, and me3"
+P29375,ENSG00000073614,Lysine-specific demethylase 5A,KDM5A,JARID1A,RBBP2,RBP2,,,,Demethylates H3K4 me2 and me3
+B2RXH2,ENSG00000235268,Lysine-specific demethylase 4E,KDM4DL,JMJD2E,,,,,,Demethylates H3K9
+Q6B0I6,ENSG00000186280,Lysine-specific demethylase 4D,KDM4D,JMJD2D,JHDM3D,,,,,Demethylates H3K9 me2 and me3
+Q9H3R0,ENSG00000107077,Lysine-specific demethylase 4C,KDM4C,JMJD2C,GASC1,JHDM3C,KIAAA0780,,,Demethylates H3K9me3 and H3K36me3
+O75164,ENSG00000066135,Lysine-specific demethylase 4A,KDM4A,JMJD2A,JHDM3A,JMJD2A,KIAA0677,,,Demethylates H3K9me3 and H3K36me3
+Q92833,ENSG00000008083,Prtoein Jumonji,JARID2,JMJ,,,,,,Regulates histone methyltransferase complexes
+Q8NB78,ENSG00000165097,Lysine-specific histone demethylase 1B,KDM1B,LSD2,AOF1,C6orf193,,,,Demethylates H3K4 me1 and me2
+O60341,ENSG00000004487,Lysine-specific histone demethylase 1A,KDM1A,LSD1,AOF2,KDM1,KIAA0601,,,Demethylates H3K4me1 and me2 and H3K9me. Demethylates p53 K370me2. Demethylates DNMT1
+O15054,ENSG00000132510,Lysine-specific demethylase 6B,KDM6B,JMJD3,KIAA0346,,,,,Demethylates H3K27me2 and me3
+O14607,ENSG00000183878,Histone demethylase UTY,UTY,KDM6C,,,,,,Male-specific demethylase. Demethylates H3K27me3
+O15550,ENSG00000147050,Lysine-specific demethylase 6A,KDM6A,UTX,,,,,,Demethylates H3K27me2 and me3
+Q8N371,ENSG00000155666,Bifunctional peptidase and arginyl-hydroxylase JMJD5,JMJD5,KDM8,,,,,,CONTROVERSIAL DEMETHYLASE ACTIVITY. May demethylate H3K36me2 
+O43593,,,HAIR,,,,,,,
+Q6NYC1,,,JMJD6,,,,,,,
+Q96S16,,,JMJD8,,,,,,,
+O94953,,,KDM4B,,,,,,,
+F5H3N7,,,UTY,,,,,,,

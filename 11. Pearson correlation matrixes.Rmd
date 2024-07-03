@@ -1,0 +1,495 @@
+```{r}
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(UniProt.ws)
+library(reshape2)
+library(ggpubr)
+library(ggcorrplot)
+library(org.Hs.eg.db)
+
+dep_rna<- read.csv("Input/Expression_Public_23Q2_subsetted_meta.csv")
+
+kmt<- read.csv("Input/KMTs_2021.csv")
+kdm<- read.csv("Input/KDM_2021.csv")
+
+kmt.vector<- as.vector(kmt$Gene.Name)
+kdm.vector<- as.vector(kdm$Gene.Name)
+kdm.extras<- c("HR", "KDM4E", "KDM7A","KDM8","RIOX1","RIOX2","KDM8")
+kdm.vector<- append(kdm.vector,kdm.extras )
+
+dep_rna<- dep_rna[-c(1),]
+dep_rna<- as.data.frame(t(dep_rna))
+dep_rna<- na.omit(dep_rna)
+colnames(dep_rna)<- dep_rna[2,]
+dep_rna<- dep_rna[-c(1:7),]
+dep_rna$Gene.Name<- rownames(dep_rna)
+
+rna.kmt<- dep_rna %>%
+  filter(Gene.Name %in% kmt.vector)
+
+rna.kdm<-dep_rna %>%
+  filter(Gene.Name %in% kdm.vector)
+
+
+trig.df<- read.csv("Input//Trigger_channel_prot_stats_combined reps.csv")
+#pulling out means and Accession and genename 
+trig.short<- trig.df[,c(20,22,24,26,2)]
+
+trig.short$gene.name<-mapIds(org.Hs.eg.db, 
+              trig.short$Accession, 
+              "SYMBOL", 
+              "UNIPROT")
+
+trig.kmt<- trig.short%>% filter(Accession %in% kmt$Uniprot.ID)
+trig.kdm<- trig.short%>% filter(Accession %in% kdm$Uniprot.ID)
+
+
+
+```
+
+# Pearson correlation of kmts and kdms within our trigger channel dataset
+```{r}
+trig.kmts.kdms<- rbind(trig.kdm, trig.kmt)
+rownames(trig.kmts.kdms)<- trig.kmts.kdms$gene.name
+trig.kmts.kdms<- trig.kmts.kdms[,-c(5,6)]
+trig.kmts.kdms<- as.matrix(t(trig.kmts.kdms))
+
+
+protein.kmt.kdm.cor<- cor(trig.kmts.kdms)
+protein.kmt.kdm.cor.pval<- cor_pmat(trig.kmts.kdms)
+
+
+a<-ggcorrplot(protein.kmt.kdm.cor,
+           hc.order = T,
+          # type = "lower",
+           lab = F,
+           outline.color = "grey",
+           colors = c("#6D9EC1", "white", "#E46726"),
+           p.mat = protein.kmt.kdm.cor.pval,
+           ggtheme = ggplot2::theme_bw(),
+          insig = "blank")
+
+
+ggsave("trig channel kmt and kdm correlation plot without xs.svg", a, device = "svg", width = 10, height = 10)
+
+```
+
+# Making a scatterplot of the KDM protein and mRNA values
+```{r}
+library(reshape2)
+library(ggplot2)
+library(ggpubr)
+trig.kdm.short<- trig.kdm[,c(1:3,6)]
+colnames(trig.kdm.short)<- colnames(rna.kdm)
+rownames(trig.kdm.short)<- paste0(trig.kdm.short$Gene.Name,"-protein")
+rownames(rna.kdm)<- paste0(rna.kdm$Gene.Name, "-rna")
+trig.kdm.short$type<- "Protein"
+trig.kdm.short.melt<- melt(trig.kdm.short)
+
+
+rna.kdm$type<- "mRNA"
+rna.kdm.melt<- melt(rna.kdm, id=c("Gene.Name", "type"))
+
+kdm_all<- left_join(trig.kdm.short.melt, rna.kdm.melt, by = c("Gene.Name", "variable"))
+
+kdm_all$value.x<-as.numeric(as.character(kdm_all$value.x))
+kdm_all$value.y<-as.numeric(as.character(kdm_all$value.y))
+
+
+
+```
+
+```{r}
+#All together
+library(RColorBrewer)
+colourCount = length(unique(kdm_all$Gene.Name))
+getPalette = colorRampPalette(brewer.pal(12, "Accent"))
+
+graph<-ggplot(kdm_all, mapping =aes(x = log10(value.x), y = value.y))+
+  geom_point(aes(color = Gene.Name, shape = variable, size = 5))+
+  #facet_wrap(~ variable)
+  theme_bw()+
+  xlab("log10(Average Protein Abundance)")+
+  ylab ("TPM+1")+
+  geom_smooth(method = "lm", color = "black")+
+  stat_cor()+
+    theme(legend.position="bottom") +
+  guides(fill=guide_legend(nrow=2))+
+  scale_color_manual(values = getPalette(colourCount))
+
+ggsave("KDM protein vs mrna all combined.eps", graph, device = "eps", width = 10, height = 10)
+
+```
+
+```{r}
+  group.colors = c("MDAMB231" = "#3ca603", "MCF7" = "#26b3ff", "HCC1806" = "#674ea7")
+
+
+a<-ggplot(kdm_all, mapping =aes(x = log10(value.x), y = value.y))+
+  geom_point(aes(color = variable, size =5))+
+  facet_wrap(~ Gene.Name, ncol = 4, scales = "free")+
+  theme_bw()+
+  xlab("log10(Average Protein Abundance)")+
+  ylab ("TPM+1")+
+  geom_smooth(method = "lm", color="black", linewidth = 0.5)+
+  stat_cor(hjust=0,vjust=5.5, method = "pearson",size=3)+
+  scale_color_manual(values = group.colors)
+
+ggsave("KDM protein vs mrna separated by kdm.eps", a, device = "eps", width = 10, height = 15)
+```
+
+# Pearson Correlation between the trigger Channel and combined significant kme sites
+
+```{r}
+library(org.Hs.eg.db)
+library(dplyr)
+library(stringr)
+library(ggpubr)
+library(ggcorrplot)
+
+kdm<- read.csv("/home/cberry/Documents/TNBC_SILAC_Analysis/Analysis/KMT and KDM/KDM_2021.csv")
+kdm.vector<- as.vector(kdm$Gene.Name)
+
+trig.df<- read.csv("/home/cberry/Documents/BC_TMT Analysis/Trigger Channel Data/Combined tech reps/Trigger_channel_prot_stats_combined reps.csv")
+#pulling outmeans and Accession and genename 
+trig.short<- trig.df[,c(20,22,24,26,2)]
+
+trig.short$gene.name<-mapIds(org.Hs.eg.db, 
+              trig.short$Accession, 
+              "SYMBOL", 
+              "UNIPROT")
+
+trig.kdm<- trig.short%>% filter(Accession %in% kdm$Uniprot.ID)
+
+
+all.kme<- read.csv("/home/cberry/Documents/BC_TMT Analysis/All Combined Kme sites/All Quantified Kme sites.csv")
+all.kme$gene.name<-mapIds(org.Hs.eg.db, 
+              all.kme$Accession, 
+              "SYMBOL", 
+              "UNIPROT")
+
+all.kme$position<-sub(".*-K","", all.kme$Format3)
+all.kme$ID<- paste0(all.kme$gene.name, "-K",all.kme$position,"-" ,rownames(all.kme) )
+
+all.kme<- all.kme[,c(75,77,79,81,18,106)]
+colnames(all.kme)<- colnames(trig.kdm)
+all.kme<- all.kme%>% filter(!hcc1806_mean == 1)
+
+
+
+trig.kdms.kme<- rbind(trig.kdm, all.kme)
+rownames(trig.kdms.kme)<- trig.kdms.kme$gene.name
+trig.kdms.kme<- trig.kdms.kme[,-c(5,6)]
+trig.kdms.kme<- as.matrix(t(trig.kdms.kme))
+trig.kdms.kme.cor<- cor(trig.kdms.kme)
+trig.kdms.kmepval<- cor_pmat(trig.kdms.kme)
+
+```
+
+## Writing code to extract significant correlations with KDMs.
+```{r}
+
+kdm.pval<- as.data.frame(trig.kdms.kmepval[,c(1:26)])
+
+
+sig_df <- data.frame()
+
+  x<- colnames(kdm.pval)[1]
+  print(x)
+  df<- kdm.pval %>% filter(kdm.pval[,1] <= 0.05)
+  y<- rownames(df)
+  df<- as.data.frame(df[,1])
+  df$Format4<- y
+  names(df)<- c(x, "Kme.ID")
+  sig_df<- df
+
+ 
+  
+for (i in 2:ncol(kdm.pval)){
+ 
+  x<- colnames(kdm.pval)[i]
+  print(x)
+  df<- kdm.pval %>% filter(kdm.pval[i] <= 0.05)
+  y<- rownames(df)
+  df<- as.data.frame(df[,i])
+  df$Format4<- y
+  names(df)<- c(x, "Kme.ID")
+  print(df)
+  sig_df<- merge(sig_df, df, by = "Kme.ID", all = T)
+  
+}
+
+# pulling out signficiant Kme site with correlation values less than 0.09
+trig.kdms.kme.cor.2<- as.data.frame(trig.kdms.kme.cor)
+trig.kdms.kme.cor.2$gene.id<- rownames(trig.kdms.kme.cor.2)
+
+
+x<- colnames(sig_df)[2]
+df.2<- as.data.frame(sig_df[2])
+rownames(df.2)<- (sig_df$Kme.ID)
+df.2<- na.omit(df.2)  
+sig.sites<- as.vector(rownames(df.2))
+kdm.cor.sites<- trig.kdms.kme.cor.2[trig.kdms.kme.cor.2$gene.id %in%sig.sites,]
+kdm.cor.sites.2<- as.data.frame(cbind(kdm.cor.sites[1], kdm.cor.sites$gene.id))
+rownames(kdm.cor.sites.2)<- row.names(kdm.cor.sites)
+colnames(kdm.cor.sites.2)<- c(x, "Gene.id")
+kdm.cor.sites.2<- kdm.cor.sites.2%>% filter(kdm.cor.sites.2[1] <0)
+
+for (i in 3:ncol(sig_df)) {
+x<- colnames(sig_df)[i]
+df.2<- as.data.frame(sig_df[i])
+rownames(df.2)<- (sig_df$Kme.ID)
+df.2<- na.omit(df.2)  
+sig.sites<- as.vector(rownames(df.2))
+kdm.cor.sites<- trig.kdms.kme.cor.2[trig.kdms.kme.cor.2$gene.id %in%sig.sites,]
+df.2<- as.data.frame(cbind(kdm.cor.sites[i-1], kdm.cor.sites$gene.id))
+rownames(df.2)<- row.names(kdm.cor.sites)
+colnames(df.2)<- c(x, "Gene.id")
+df.2<- df.2%>% filter(df.2[1] < 0)
+print(df.2)
+kdm.cor.sites.2<- merge(kdm.cor.sites.2, df.2, by = "Gene.id", all = T)
+
+}
+
+
+```
+### get sequence info. Inner join with 7-mer sequences
+```{r}
+kdm.cor.sites.2[c("Gene.name", "Position", "Methyl.state", "ID")]<- str_split_fixed(kdm.cor.sites.2$Gene.id, "-",4)
+kdm.cor.sites.2$Position<- substring(kdm.cor.sites.2$Position, 2)
+colnames(kdm.cor.sites.2)[1]<- "gene.name"
+
+kdm.cor.sites.2<- inner_join(all.kme, kdm.cor.sites.2, by = "gene.name")
+
+# Motif Analysis
+library(UniprotR)
+#version 2.4. Published in 3.2024
+#Functions to extract aa sequences for Uniprot IDs
+
+motif_analysis<- function (df){
+    
+    #Vector of Uniprot IDs
+    
+    IDs <- df[,"Accession"]
+    
+    #Extract aa sequences for each Uniprot ID and store in a new df 
+    
+    Uniprot<- GetSequences(IDs)
+    
+    #Add aa sequences to a new column to df of interest
+    
+    
+  return(Uniprot)
+    
+}
+df_aasequence<- motif_analysis(kdm.cor.sites.2)
+
+aasequence<- as.character(df_aasequence$Sequence)
+
+
+df_aasequence$Accession<- rownames(df_aasequence)
+
+y<- df_aasequence[,c(20,15)]
+
+kdm.cor.sites.2.motif <- inner_join(kdm.cor.sites.2,y, by = "Accession")
+
+kdm.cor.sites.2.motif$Position<- as.numeric(as.character(kdm.cor.sites.2.motif$Position))
+motif<- c()
+ 
+    for (i in 1:nrow(kdm.cor.sites.2.motif)) {
+     
+      
+      #index df by aa sequence and then by +/- 3 positions from methylated residue
+      motif[i] <- print(str_sub(kdm.cor.sites.2.motif[i,"Sequence"], 
+                                kdm.cor.sites.2.motif[i,"Position"]-3, 
+                                kdm.cor.sites.2.motif[i,"Position"]+3))
+      
+     }
+#return df with column containing 7-mer motifs
+kdm.cor.sites.2.motif <- cbind(kdm.cor.sites.2.motif, motif)
+char <- nchar(kdm.cor.sites.2.motif$motif)
+kdm.cor.sites.2.motif[,c(39:45)]<- str_split_fixed(kdm.cor.sites.2.motif$motif, "", 7)
+
+write.csv(kdm.cor.sites.2.motif, "KDM and Kme negative correlations with motif.csv")
+```
+
+### heat map with KDMs on one axis and Kme on the other
+```{r}
+
+library(pheatmap)
+
+#All replicates
+## z score
+kdm.cor.sites.2[is.na(kdm.cor.sites.2)]<-0
+rownames(kdm.cor.sites.2)<- kdm.cor.sites.2$Gene.id
+kdm.cor.sites.2<- kdm.cor.sites.2[,-c(1)]
+
+paletteLength <- 300
+myColor <- colorRampPalette(c("navy", "white", "darkred"))(paletteLength)
+myBreaks <- c(seq(min(kdm.cor.sites.2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(kdm.cor.sites.2)/paletteLength, max(kdm.cor.sites.2), length.out=floor(paletteLength/2)))
+
+svg("Correlations between KDMs and Kme.svg", height = 31, width = 10)
+
+a<- pheatmap(kdm.cor.sites.2,
+             color = myColor,
+             breaks = myBreaks,
+             cellwidth = 15,
+             #scale= "row",
+             cellheight = 5,
+             fontsize_row = 4,
+             main = "Correlations between KDMs and Kme",
+             #cutree_rows = 3,
+             border_color = "grey",
+             show_colnames = T,
+             show_rownames = T,
+             cluster_cols = T,
+             cluster_rows = T,
+             legend_breaks =c(-0.99,0,0.99,1))
+
+dev.off()
+a
+
+```
+
+### heat map with KDMs on one axis and Kme on the other only negative correlations
+```{r}
+
+library(pheatmap)
+
+#All replicates
+## z score
+kdm.cor.sites.2[is.na(kdm.cor.sites.2)]<-0
+rownames(kdm.cor.sites.2)<- kdm.cor.sites.2$Gene.id
+kdm.cor.sites.2<- kdm.cor.sites.2[,-c(1)]
+
+paletteLength <- 300
+myColor <- colorRampPalette(c("navy", "light blue", "white"))(paletteLength)
+myBreaks <- c(seq(min(kdm.cor.sites.2), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(kdm.cor.sites.2)/paletteLength, max(kdm.cor.sites.2), length.out=floor(paletteLength/2)))
+
+svg("Correlations between KDMs and Kme negative correlations.svg", height = 15, width = 10)
+
+a<- pheatmap(kdm.cor.sites.2,
+             color = myColor,
+             #breaks = myBreaks,
+             cellwidth = 15,
+             #scale= "row",
+             cellheight = 5,
+             fontsize_row = 4,
+             main = "Correlations between KDMs and Kme",
+             #cutree_rows = 3,
+             border_color = "grey",
+             show_colnames = T,
+             show_rownames = T,
+             cluster_cols = T,
+             cluster_rows = T)
+
+dev.off()
+a
+
+```
+
+## Pulling out values 
+### Focusing on KDM1A, KDM4B, KDM3A, and KDM5C
+```{r}
+library(reshape2)
+#x is kdm. y is KDM witin quotations
+filtering<- function(x,y){
+
+trig.kdms.kmepval<- as.data.frame(trig.kdms.kmepval)
+sig<- trig.kdms.kmepval%>%filter({{x}} <= 0.05)
+trig.kdms.kme.cor<- as.data.frame(trig.kdms.kme.cor)
+cor<- trig.kdms.kme.cor%>% filter({{x}} < -0.9)
+
+sig_kmesites<- as.vector(rownames(sig))
+cor<- as.vector(rownames(cor))
+sig_kmesites<- all.kme[all.kme$gene.name %in% sig_kmesites,]
+sig_kmesites<- sig_kmesites[sig_kmesites$gene.name %in% cor,]
+
+
+kdm_kme_melt<- melt(sig_kmesites)
+kdm<- trig.kdm%>% filter(gene.name == y)
+print(head(kdm))
+kdm<- kdm[,-c(5)]
+kdm<- melt(kdm)
+kdm<- inner_join(kdm, kdm_kme_melt, by = "variable")
+kdm<- kdm%>% mutate(cells = case_when(variable == "hcc1806_mean" ~ "HCC1806",
+                                          variable == "mdam_mean" ~"MDAMB231",
+                                          variable == "mcf7_mean" ~"MCF7",
+                                          variable == "mcf10a_mean" ~ "MCF10A"))
+
+return(kdm)
+}
+#x is output from previous function. y is KDM in quotes
+plot_function<- function(x,y){
+  
+  group.colors = c("MDAMB231" = "#3ca603", "MCF7" = "#26b3ff", "HCC1806" = "#674ea7", "MCF10A" = "#cc0000")
+
+kdm_plot<- ggplot(x, aes(x = value.y, y = value.x, color = cells, size = 4))+
+  geom_point()+
+  facet_wrap(~gene.name.y, scales = "free", ncol = 4)+
+  theme_bw()+
+  xlab("Normalized Kme Peptide Abundances")+
+  ylab("Protein Abundance")+
+  labs(title = paste0(y," and KDM Kme Site Correlations"))+
+  scale_color_manual(values = group.colors)+
+  geom_smooth(method = "lm", colour = "black", fill = "black", size = 0.5 ) +
+  theme(axis.text = element_text(size = 6),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+
+print(kdm_plot)
+return(kdm_plot)
+
+  
+}
+
+
+```
+
+#Running functions
+```{r}
+#KDM3A
+kdm3a_correlations<- filtering(KDM3A, "KDM3A")
+kdm3a_plot<- plot_function(kdm3a_correlations, "KDM3A")
+
+#KDM4B
+kdm4b_correlations<- filtering(KDM4B, "KDM4B")
+kdm4b_plot<- plot_function(kdm4b_correlations, "KDM4B")
+
+#KDM5C
+kdm5c_correlations<- filtering(KDM5C, "KDM5C")
+kdm5c_plot<- plot_function(kdm5c_correlations, "KDM5C")
+
+#KDM1A
+kdm1a_correlations<- filtering(KDM1A, "KDM1A")
+kdm1a_plot<- plot_function(kdm1a_correlations, "KDM1A")
+
+#KDM4E
+kdm4e_correlations<- filtering(KDM4E, "KDM4E")
+kdm4e_plot<- plot_function(kdm4e_correlations, "KDM4E")
+ggsave("kdm4e correlation plot.eps",kdm4e_plot, device = "eps",width = 12, height = 15)
+
+#KDM3B
+kdm3b_correlations<- filtering(KDM3B, "KDM3B")
+kdm3b_plot<- plot_function(kdm3b_correlations, "KDM3B")
+ggsave("kdm3b correlation plot.eps",kdm3b_plot, device = "eps",width = 12, height = 15)
+
+#PHF8
+phf8_correlations<- filtering(PHF8, "PHF8")
+phf8_plot<- plot_function(phf8_correlations, "PHF8")
+#ggsave("phf8 correlation plot.eps",phf8_plot, device = "eps",width = 12, height = 7)
+
+```
+
+
+```{r}
+library(ggpubr)
+
+figure<- ggarrange(kdm1a_plot, phf8_plot,
+                   nrow = 2)
+
+ggsave("KDM1A and PHF8 correlation plots.eps",figure, device = "eps", width = 10, height = 10)
+```
+

@@ -1,0 +1,669 @@
+```{r}
+# This script compares the proteomes and kdms psms/peptides with and without the trigger channel
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(VennDiagram)
+library(ggforce)
+
+#Opening up Proteins summaries
+bc_protein<- read.csv("Input/No Trigger Channel Protein Summary.csv")
+
+trigger_protein<- read.csv("Input/Trigger Channel protein Summary2.csv")
+
+
+#Opening up Process Proteome data
+bc_df<- read.csv("Input/No Trigger_channel_prot_stats.csv")
+bc_df<- bc_df[,-c(1)]
+
+trigger_df<- read.csv("Input/Trigger_channel_prot_stats_combined reps.csv")
+trigger_df<- trigger_df[,-c(1)]
+
+kdm<- read.csv("Input/KDM_2021.csv")
+kdm.vector<- as.vector(kdm$Uniprot.ID)
+gene_kdm<- kdm[,c(1,4)]
+colnames(gene_kdm)<- c("Accession", "Gene.Name")
+
+```
+
+# Proteome Comparisons
+## VennDiagram of accessions of filtered and quantified KDMs
+
+```{r Venn Diagram}
+list<- list(First.Run = bc_df$Accession,
+        KDM.Trigger.Channel = trig_df$Accession)
+
+a<-venn.diagram(
+  list ,
+  category.names = c("Without Trigger" , "With Trigger" ),
+  filename = 'venn_Trigger.png',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 3200 , 
+           width = 3200 , 
+          resolution = 600,           
+          compression = "lzw",
+          lwd = 1,
+          col=c("#000000", '#07526e'),
+          fill = c(alpha("#000000",0.5), alpha('#07526e',0.5)),
+          cex = 1.5,
+          fontfamily = "sans",
+          cat.cex = 1.20,
+          cat.default.pos = "outer",
+          cat.pos = c(-15, 15),
+          cat.dist = c(0.045, 0.045),
+          cat.fontfamily = "sans",
+          cat.col = c("#000000", '#07526e'),
+  scaled=T
+        )
+
+a
+```
+
+
+## Ggplot correlations
+### Proteome Abundances
+```{r Ggplot correlaitons}
+
+big<- inner_join(trigger_df, bc_df, by = "Accession")
+
+big<- big%>%
+  mutate(kdm= case_when(Accession %in% kdm.vector ~ "KDM",
+                                 TRUE ~ "ns"))
+
+#MDAMB231
+
+md<- big[,c(1,23,82,110)]
+colnames(md)<- c("Accession", "Trigger", "No.Trigger", "kdm")
+
+md_graph<- ggplot(md, aes(x=log10(Trigger), y=log10(No.Trigger))) +
+  geom_point( aes(color = kdm, size = kdm, alpha=kdm)) +
+  geom_smooth(method=lm , color="#0d97ca", fill="#0d97ca", se=TRUE) +
+  theme_bw()+
+  labs(title = "MDAMB231 average protein abundance")+
+  stat_cor(method = "pearson")+
+  scale_color_manual(values = c("#0d97ca","#696969"))+
+  scale_size_manual(values = c(3,1))+
+  scale_alpha_manual(values=c(1,0.2))+
+  ylim(0,6)+
+  xlim(0,6)
+
+
+#HCC1806
+hcc<- big[,c(1,19,69,110)]
+colnames(hcc)<- c("Accession", "Trigger", "No.Trigger", "kdm")
+
+hcc_graph<- ggplot(hcc, aes(x=log10(Trigger), y=log10(No.Trigger))) +
+  geom_point( aes(color = kdm, size = kdm, alpha=kdm)) +
+  geom_smooth(method=lm , color="#0d97ca", fill="#0d97ca", se=TRUE) +
+  theme_bw()+
+  labs(title = "HCC1806 average protein abundance")+
+  stat_cor(method = "pearson")+
+  scale_color_manual(values = c("#0d97ca","#696969"))+
+  scale_size_manual(values = c(3,1))+
+  scale_alpha_manual(values=c(1,0.2))+
+  ylim(0,6)+
+  xlim(0,6)
+
+
+#MCF7
+mcf7<- big[,c(1,21,75,110)]
+colnames(mcf7)<- c("Accession", "Trigger", "No.Trigger", "kdm")
+
+mcf7_graph<- ggplot(mcf7, aes(x=log10(Trigger), y=log10(No.Trigger))) +
+  geom_point( aes(color = kdm, size = kdm, alpha=kdm)) +
+  geom_smooth(method=lm , color="#0d97ca", fill="#0d97ca", se=TRUE) +
+  theme_bw()+
+  labs(title = "MCF7 average protein abundance")+
+  stat_cor(method = "pearson")+
+  scale_color_manual(values = c("#0d97ca","#696969"))+
+  scale_size_manual(values = c(3,1))+
+  scale_alpha_manual(values=c(1,0.2))+
+  ylim(0,6)+
+  xlim(0,6)
+
+
+#MCF10A
+mcf10a<- big[,c(1,25,87,110)]
+colnames(mcf10a)<- c("Accession", "Trigger", "No.Trigger", "kdm")
+
+mcf10a_graph<- ggplot(mcf10a, aes(x=log10(Trigger), y=log10(No.Trigger))) +
+  geom_point( aes(color = kdm, size = kdm, alpha=kdm)) +
+  geom_smooth(method=lm , color="#0d97ca", fill="#0d97ca", se=TRUE) +
+  theme_bw()+
+  labs(title = "MCF10A average protein abundance")+
+  stat_cor(method = "pearson")+
+  scale_color_manual(values = c("#0d97ca","#696969"))+
+  scale_size_manual(values = c(3,1))+
+  scale_alpha_manual(values=c(1,0.2))+
+  ylim(0,6)+
+  xlim(0,6)
+
+figure_1<- ggarrange(md_graph, hcc_graph, mcf7_graph,mcf10a_graph,
+                   ncol = 2,nrow = 2)
+
+figure_1
+
+#ggsave("Trigger channel_pearson correlation_proteome.png", figure_1, device = "png", width = 12, height = 12)
+#ggsave("Trigger channel_pearson correlation_proteome.svg", figure_1, device = "svg", width = 12, height = 12)
+
+
+```
+
+## Principal component analysis
+
+### No Trigger Channel
+####prepare data frame to do a pca analysis
+```{r}
+
+bc_mat<- bc_df[,c(1:17)]
+
+bc_mat<- bc_mat[!duplicated(bc_mat$Accession),]
+
+rownames(bc_mat)<- bc_mat[,1]
+
+bc_mat<- bc_mat[,-c(1)]
+
+cols.num<- colnames(bc_mat)
+
+bc_mat[cols.num]<- sapply(bc_mat[cols.num], as.numeric)
+
+bc_mat<- na.omit(bc_mat)
+
+bc_mat_t<- t(bc_mat)
+
+bc_pca<- prcomp(bc_mat_t)
+
+plot(bc_pca$x[,1], bc_pca$x[,2])
+
+```
+#### making a scree plot
+```{r}
+bc.pca.var<- bc_pca$sdev^2
+
+bc.pca.var<- round(bc.pca.var/sum(bc.pca.var)*100,1)
+
+barplot(bc.pca.var, main="Scree Plot", xlab="Principal Component", ylab="Percent Variation")
+
+```
+
+#### Using ggplot to make a nice pca plot
+```{r}
+bc.pca_data<- data.frame(sample= rownames(bc_pca$x),
+                         x=bc_pca$x[,1],
+                         y = bc_pca$x[,2])
+
+bc.pca_data$cell<-c(rep("HCC1806",4) , 
+                      rep("MCF10A",4),
+                      rep("MCF7", 4),
+                      rep ("MDAMB231",4))
+
+
+```
+##### PC1 vs PC2
+```{r}
+
+a<-ggplot(data=bc.pca_data,aes(label=sample,x=x,y=y, color = cell)) + 
+ 
+  ggtitle("Proteome PCA Plot of Breast Cancer Cell Lines") +
+
+  geom_point(aes( size = 4)) +
+  
+  scale_color_manual(values = c("MDAMB231"= "#3ca60e", "MCF10A"="#cc0000", "MCF7"="#26b3ff","HCC1806"="#674ea7"))+
+
+  xlab(paste("PC1: ",bc.pca.var[1],"%",sep="")) +
+
+  ylab(paste("PC2: ",bc.pca.var[2],"%",sep=""))+
+   geom_mark_ellipse(aes(color = as.factor(cell)), expand = unit(2, "mm"), show.legend = F )+
+  theme_classic()+
+  theme(legend.text = element_text(size = 10))+
+  guides(color=guide_legend(override.aes = list(size = 5)),
+         shape = guide_legend(override.aes = list(size=5)))
+ 
+a
+
+#ggsave("bc_PCA PC1.eps", a, device= "eps", width = 6, height = 3)
+```
+#### looking at what contributes the most to PC1
+```{r}
+
+#getting the loading scores
+
+loadingScores<- bc_pca$rotation[,1]
+
+#getting the magnitudes of loading scores
+
+geneScores<- abs(loadingScores)
+
+#soring from high to low
+
+geneScoreRanked<- sort(geneScores, decreasing = T)
+
+#getting top 5 format 3
+
+top5genes<- names(geneScoreRanked[1:10])
+
+top_bc_pca<-bc_pca$rotation[top5genes,1]
+top_bc_pca
+
+```
+
+### Trigger Channel
+
+```{r}
+#Protein
+
+trig_mat<- trigger_df[,c(1:17)]
+
+trig_mat<- trig_mat[!duplicated(trig_mat$Accession),]
+
+rownames(trig_mat)<- trig_mat[,1]
+
+trig_mat<- trig_mat[,-c(1)]
+
+cols.num<- colnames(trig_mat)
+
+trig_mat[cols.num]<- sapply(trig_mat[cols.num], as.numeric)
+
+trig_mat<- na.omit(trig_mat)
+
+trig_mat_t<- t(trig_mat)
+
+trig_pca<- prcomp(trig_mat_t)
+
+```
+
+
+#### Plotting the pca
+```{r}
+
+plot(trig_pca$x[,1], trig_pca$x[,2])
+
+```
+making a scree plot
+```{r}
+trig.pca.var<- trig_pca$sdev^2
+
+trig.pca.var<- round(trig.pca.var/sum(trig.pca.var)*100,1)
+
+barplot(trig.pca.var, main="Scree Plot", xlab="Principal Component", ylab="Percent Variation")
+
+```
+
+Using ggplot to make a nice pca plot
+```{r}
+trig.pca_data<- data.frame(sample= rownames(trig_pca$x),
+                         x=trig_pca$x[,1],
+                         y = trig_pca$x[,2])
+
+trig.pca_data$cell<-c(rep("HCC1806",4) , 
+                      rep("MCF10A",4),
+                      rep("MCF7", 4),
+                      rep ("MDAMB231",4))
+
+
+```
+#PC1 vs PC2
+```{r}
+
+a<-ggplot(data=trig.pca_data,aes(label=sample,x=x,y=y, color = cell)) + 
+ 
+  ggtitle("Proteome PCA Plot of Breast Cancer Cell Lines with the Trigger Channel") +
+
+  geom_point(aes( size = 4)) +
+  
+  scale_color_manual(values = c("MDAMB231"= "#3ca60e", "MCF10A"="#cc0000", "MCF7"="#26b3ff","HCC1806"="#674ea7"))+
+
+  xlab(paste("PC1: ",bc.pca.var[1],"%",sep="")) +
+
+  ylab(paste("PC2: ",bc.pca.var[2],"%",sep=""))+
+   geom_mark_ellipse(aes(color = as.factor(cell)), expand = unit(2, "mm"), show.legend = F )+
+  theme_classic()+
+  theme(legend.text = element_text(size = 10))+
+  guides(color=guide_legend(override.aes = list(size = 5)),
+         shape = guide_legend(override.aes = list(size=5)))
+ 
+a
+
+#ggsave("bc_PCA PC1 Trigger.eps", a, device= "eps", width = 6, height = 3)
+```
+looking at what contributes the most to PC1
+```{r}
+
+#getting the loading scores
+
+loadingScores<- bc_pca$rotation[,1]
+
+#getting the magnitudes of loading scores
+
+geneScores<- abs(loadingScores)
+
+#soring from high to low
+
+geneScoreRanked<- sort(geneScores, decreasing = T)
+
+#getting top 5 format 3
+
+top5genes<- names(geneScoreRanked[1:10])
+
+top_bc_pca<-trig_pca$rotation[top5genes,1]
+top_bc_pca
+
+```
+
+
+# KDM comparison
+## Number of PSMs and peptides between the two datasets (detected level)
+
+```{r Detected level, no filtering}
+#First pass
+bc.kdm<-bc_protein %>%
+  filter(Accession %in% kdm.vector)
+bc.kdm<- inner_join( bc.kdm, gene_kdm, by = "Accession")
+bc.kdm$type<- "No.Trigger"
+bc.kdm_a<- bc.kdm[,c(4,6,7,34,53,70,71)]
+
+
+#Trigger Channel
+bc.kdm.trig<-trigger_protein %>%
+  filter(Accession %in% kdm.vector)
+bc.kdm.trig<- inner_join( bc.kdm.trig, gene_kdm, by = "Accession")
+bc.kdm.trig$type<- "Trigger"
+bc.kdm.trig_a<- bc.kdm.trig[,c(4,6,7,34,53,70,71)]
+
+
+#Combining them
+df<- rbind(bc.kdm_a, bc.kdm.trig_a)
+
+#Plots
+
+cols <- c("No.Trigger" = "black", "Trigger" = "#6A97A8") 
+
+a<- ggplot(df, aes(x = Gene.Name, y = Coverage...., fill = type))+
+  geom_bar(stat = "identity", color= "black", position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "% Peptide Coverage of KDM",
+       y = "% Coverage",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = Coverage....),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+b<- ggplot(df, aes(x = Gene.Name, y = X..PSMs, fill = type))+
+  geom_bar(stat = "identity", color= "black",position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of PSMs for each KDM",
+       y = "# of PSMs",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = X..PSMs),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+c<- ggplot(df, aes(x = Gene.Name, X..Peptides, y = X..Peptides, fill = type))+
+  geom_bar(stat = "identity", color= "black",position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of Peptides for each KDM",
+       y = "# of Peptides",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = X..Peptides),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+figure<- ggarrange(a, b, c,
+                   ncol = 2,nrow = 2)
+
+figure
+
+#ggsave("Trigger channel stats ALL DETECTED.png", figure, device = "png", width = 20, height = 9)
+#ggsave("Trigger channel stats ALL DETECTED.eps", figure, device = "eps", width = 20, height = 9)
+
+```
+
+## Filtering with Quant levels aka na omit filtered stuff
+```{r}
+#First pass
+bc_protein<-bc_protein%>%
+  filter(X..Unique.Peptides >1)
+bc_protein<- bc_protein%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+bc.kdm<-bc_protein %>%
+  filter(Accession %in% kdm.vector)
+bc.kdm<- na.omit(bc.kdm)
+bc.kdm<- inner_join( bc.kdm, gene_kdm, by = "Accession")
+bc.kdm$type<- "No.Trigger"
+#Subsetting: Accession, Peptide #, PSM number, # of unique peptides, Coverage, Gene.Name, and type
+bc.kdm_a<- bc.kdm[,c(4,6,7,34,53,70,71)]
+
+
+#Trigger Channel
+trigger_protein<-trigger_protein%>%
+  filter(X..Unique.Peptides >1)
+trigger_protein<- trigger_protein%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+trigger.kdm<-trigger_protein %>%
+  filter(Accession %in% kdm.vector)
+trigger.kdm<- na.omit(trigger.kdm)
+trigger.kdm<- inner_join( trigger.kdm, gene_kdm, by = "Accession")
+trigger.kdm$type<- "Trigger"
+#Subsetting: Accession, Peptide #, PSM number, # of unique peptides, Coverage, Gene.Name, and type
+trigger.kdm_a<- trigger.kdm[,c(4,6,7,34,53,70,71)]
+
+
+#Combining them
+df<- rbind(bc.kdm_a, bc.kdm.trig_a)
+
+#Plots
+
+cols <- c("No.Trigger" = "black", "Trigger" = "#6A97A8") 
+
+a<- ggplot(df, aes(x = Gene.Name, y = Coverage...., fill = type))+
+  geom_bar(stat = "identity", color= "black", position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "% Peptide Coverage of KDM",
+       y = "% Coverage",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = Coverage....),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+b<- ggplot(df, aes(x = Gene.Name, y = X..PSMs, fill = type))+
+  geom_bar(stat = "identity", color= "black",position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of PSMs for each KDM",
+       y = "# of PSMs",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = X..PSMs),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+c<- ggplot(df, aes(x = Gene.Name, X..Peptides, y = X..Peptides, fill = type))+
+  geom_bar(stat = "identity", color= "black",position = position_dodge2(preserve = "single"))+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust= 1))+
+  labs(title = "# of Peptides for each KDM",
+       y = "# of Peptides",
+       x = "KDM")+                                
+  geom_text(aes(Gene.Name, label = X..Peptides),
+            position = position_dodge(width = 1),vjust=-0.25)+
+  scale_fill_manual(values = cols)
+
+
+figure<- ggarrange(a, b, c,
+                   ncol = 2,nrow = 2)
+
+figure
+
+#ggsave("Trigger channel stats Quantified.png", figure, device = "png", width = 20, height = 9)
+#ggsave("Trigger channel stats Quantified.eps", figure, device = "eps", width = 20, height = 9)
+```
+
+
+## Investigating the PSMs of KDMs found in both datasets
+
+```{r opening up psms}
+no.trigger<- read.csv("/home/cberry/Documents/BC_TMT Analysis/psms.csv")
+
+trigger<- read.csv("/home/cberry/Documents/BC_TMT Analysis/2024_01_08_ExplorisFAIMSaurora_CornettwithTrigger2.psm.csv")
+
+library(dplyr)
+```
+
+### Pulling out KDM1A peptides
+```{r}
+no.trigger.1a<- no.trigger %>% filter(Master.Protein.Accessions == "O60341") #24 psms
+trigger.1a<- trigger %>% filter(Master.Protein.Accessions == "O60341")#27 psms
+
+# getting rid of duplicated peptides
+
+no.trigger.1a.uni<- no.trigger.1a[!duplicated(no.trigger.1a$Annotated.Sequence),]#13 psms
+trigger.1a.uni<- trigger.1a[!duplicated(trigger.1a$Annotated.Sequence),]#12 psms
+
+common_psm<- intersect(no.trigger.1a.uni$Annotated.Sequence, trigger.1a.uni$Annotated.Sequence) #5 are in common [1] "[K].lQELEANPPSDVYLSSR.[D]" "[K].cDAVLcTLPLGVLk.[Q]"    "[K].tQEELkELLNk.[M]"      
+#[4] "[K].eYDELAETQGk.[L]"       "[R].vHSYLER.[H]" 
+
+#In no.trigger.1a.uni, K].cDAVLcTLPLGVLk.[Q] is seen 3 times, [K].lQELEANPPSDVYLSSR.[D] is seen 1 time, "[K].tQEELkELLNk.[M]" is seen 3 times, "[K].eYDELAETQGk.[L]" 1 time, "[R].vHSYLER.[H]"  2 times.
+#9/24 psms from 5 sequences were in common
+
+#in trigger.1a, [K].cDAVLcTLPLGVLk.[Q] 1 time, [K].lQELEANPPSDVYLSSR.[D] 3 time, [K].tQEELkELLNk.[M] 4 times, [K].eYDELAETQGk.[L] 2 times, [R].vHSYLER.[H] 2 times. 
+#12/27 psms from 5 sequences were in common. [K].tQEELkELLNk.[M] was specifically seen a decent amount
+
+
+```
+
+### Looking at KDM3B
+```{r}
+no.trigger.3b<- no.trigger %>% filter(Master.Protein.Accessions == "Q7LBC6") #5 psms
+trigger.3b<- trigger %>% filter(Master.Protein.Accessions == "Q7LBC6")#6 psms
+
+# getting rid of duplicated peptides
+
+no.trigger.3b.uni<- no.trigger.3b[!duplicated(no.trigger.3b$Annotated.Sequence),]#5 psms
+trigger.3b.uni<- trigger.3b[!duplicated(trigger.3b$Annotated.Sequence),]#6 psms
+
+common_psm<- intersect(no.trigger.3b.uni$Annotated.Sequence, trigger.3b.uni$Annotated.Sequence)
+#Just the one"[K].sELWkPEAFSQEFGDQDVDLVNcR.[N]
+
+# since there are no duplicates, the then it's 1/5 without the trigger and 1/6 with the trigger
+
+```
+
+### Looking at KDM5B
+```{r}
+no.trigger.5b<- no.trigger %>% filter(Master.Protein.Accessions == "Q9UGL1") #3 psms
+trigger.5b<- trigger %>% filter(Master.Protein.Accessions == "Q9UGL1")#2 psms
+
+# getting rid of duplicated peptides
+
+no.trigger.5b.uni<- no.trigger.5b[!duplicated(no.trigger.5b$Annotated.Sequence),]#3 psms
+trigger.5b.uni<- trigger.5b[!duplicated(trigger.5b$Annotated.Sequence),]#2 psms
+
+common_psm<- intersect(no.trigger.5b.uni$Annotated.Sequence, trigger.5b.uni$Annotated.Sequence)
+#None in common
+
+```
+
+# Now just looking at the other 4 KDMs seen in common, even thought the psm count is very different
+## JMJD6, KDM2A, MINA, NO66. (RIOX2, RIOX1)
+
+### JMJD6
+```{r}
+no.trigger.d6<- no.trigger %>% filter(Master.Protein.Accessions == "Q6NYC1") #10 psms
+trigger.d6<- trigger %>% filter(Master.Protein.Accessions == "Q6NYC1")#30 psms
+
+# getting rid of duplicated peptides
+
+no.trigger.d6.uni<- no.trigger.d6[!duplicated(no.trigger.d6$Annotated.Sequence),]#6 psms
+trigger.d6.uni<- trigger.d6[!duplicated(trigger.d6$Annotated.Sequence),]#8 psms
+
+common_psm<- intersect(no.trigger.d6.uni$Annotated.Sequence, trigger.d6.uni$Annotated.Sequence)
+#3 in common. "[R].dEGGNQQDEAITWFNVIYPR.[T]"    "[K].fFTDDLFQYAGEk.[R]"           "[K].vTRDEGGNQQDEAITWFNVIYPR.[T]"
+
+#no trigger channel."[R].dEGGNQQDEAITWFNVIYPR.[T]" 2 times. [K].fFTDDLFQYAGEk.[R] 3 times. [K].vTRDEGGNQQDEAITWFNVIYPR.[T]. 1 time
+
+#With trigger channel "[R].dEGGNQQDEAITWFNVIYPR.[T]" is seen 6 times, "[K].fFTDDLFQYAGEk.[R]"  is seen 7 times, and "[K].vTRDEGGNQQDEAITWFNVIYPR.[T]" is seen 8 times.
+
+#These are high flying peptides
+
+```
+
+
+### KDM2A
+```{r}
+no.trigger.2a<- no.trigger %>% filter(Master.Protein.Accessions == "Q9Y2K7") #3 psms
+dim(no.trigger.2a)
+trigger.2a<- trigger %>% filter(Master.Protein.Accessions == "Q9Y2K7")#32 psms
+dim(trigger.2a)
+# getting rid of duplicated peptides
+
+no.trigger.2a.uni<- no.trigger.2a[!duplicated(no.trigger.2a$Annotated.Sequence),]#3 psms
+dim(no.trigger.2a.uni)
+trigger.2a.uni<- trigger.2a[!duplicated(trigger.2a$Annotated.Sequence),]#16 psms
+dim(trigger.2a.uni)
+
+common_psm<- intersect(no.trigger.2a.uni$Annotated.Sequence, trigger.2a.uni$Annotated.Sequence)
+#"[K].acVQGEcGVcHYcR.[D]" "[K].iLLEELANSDPk.[L]" 
+
+#No trigger, each of these are seen once
+
+#Without trigger, the first one is seen 1 time. ill is seen 3 times. Other peptides are more abundant
+
+```
+
+### MINA/RIOX2
+```{r}
+no.trigger.na<- no.trigger %>% filter(Master.Protein.Accessions == "Q8IUF8") #3 psms
+dim(no.trigger.na)
+trigger.na<- trigger %>% filter(Master.Protein.Accessions == "Q8IUF8")#43 psms
+dim(trigger.na)
+# getting rid of duplicated peptides
+
+no.trigger.na.uni<- no.trigger.na[!duplicated(no.trigger.na$Annotated.Sequence),]#3 psms
+dim(no.trigger.na.uni)
+trigger.na.uni<- trigger.na[!duplicated(trigger.na$Annotated.Sequence),]#13 psms
+dim(trigger.na.uni)
+
+common_psm<- intersect(no.trigger.na.uni$Annotated.Sequence, trigger.na.uni$Annotated.Sequence)
+#"[K].rATIQFHQPQR.[F]" "[R].eYSVEAEER.[I]"  
+
+#No trigger, each one is seen once
+
+#with trigger, [K].rATIQFHQPQR.[F] is seen 2 times, and [R].eYSVEAEER.[I] is seen 14 times. That one is a good flier
+
+```
+
+### NO66/RIOX1
+```{r}
+no.trigger.66<- no.trigger %>% filter(Master.Protein.Accessions == "Q9H6W3") #6 psms
+dim(no.trigger.66)
+trigger.66<- trigger %>% filter(Master.Protein.Accessions == "Q9H6W3")#17 psms
+dim(trigger.66)
+# getting rid of duplicated peptides
+
+no.trigger.66.uni<- no.trigger.66[!duplicated(no.trigger.66$Annotated.Sequence),]#3 psms
+dim(no.trigger.na.uni)
+trigger.66.uni<- trigger.66[!duplicated(trigger.66$Annotated.Sequence),]#7 psms
+dim(trigger.66.uni)
+
+common_psm<- intersect(no.trigger.66.uni$Annotated.Sequence, trigger.66.uni$Annotated.Sequence)
+#"[R].ePYGHLGPAELLEASPAAR.[S]" "[R].lGHFAPVDAVADQR.[A]"      "[R].vYHLEEPk.[C]"  
+
+#No trigger, each one is seen once
+
+#with trigger,[R].ePYGHLGPAELLEASPAAR.[S is seen 3 times, "[R].vYHLEEPk.[C]"  is seen once, and [R].lGHFAPVDAVADQR.[A]"  is seen 3 times. Not the most abundant peptide though
+
+```
+

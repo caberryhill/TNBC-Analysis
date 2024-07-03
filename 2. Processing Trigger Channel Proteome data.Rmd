@@ -1,0 +1,276 @@
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+
+
+trigger<- read.csv("Input/Trigger Channel protein Summary2.csv")
+
+```
+
+# Number of proteins and quantified proteins for filtered detected proteins w/trigger channel
+```{r}
+#With Trigger
+
+## Removing proteins that are known contaminants, have a high FDR cutoff and more than 1 unique peptide
+trig_clean<-trigger%>%
+  filter(X..Unique.Peptides >1)
+
+trig_clean<- trig_clean%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+
+trig_clean<- trig_clean%>%
+  filter(!grepl("CONTAMINANT",Description ))
+
+#Number of Quantified proteins
+
+trig_clean_2<- trig_clean[complete.cases(trig_clean[,c(35:50)]),]
+
+#Deteted: 4384
+#Quantified: 4311
+
+
+```
+
+# Cleaning up trigger channel for quant level comparison
+
+```{r}
+trig_clean<-trigger%>%
+  filter(X..Unique.Peptides >1)
+
+trig_clean<- trig_clean%>%
+  filter(Protein.FDR.Confidence..Combined =="High")
+
+trig_clean<- trig_clean%>%
+  filter(!grepl("CONTAMINANT",Description ))
+trig_clean<- trig_clean[complete.cases(trig_clean[,c(35:50)]),]
+
+trig_df<- trig_clean[,c(35:50)]
+
+#Adding a pseudocount
+trig_df<- trig_df +0.1
+
+colnames(trig_df)<- c(
+                    "HCC1806_Rep1",
+                    "HCC1806_Rep2",
+                    "HCC1806_Rep3",
+                    "HCC1806_Rep4",
+                    "MCF10A_Rep1",
+                    "MCF10A_Rep2",
+                    "MCF10A_Rep3",
+                    "MCF10A_Rep4",
+                    "MCF7_Rep1",
+                    "MCF7_Rep2",
+                    "MCF7_Rep3",
+                    "MCF7_Rep4",
+                    "MDAMB231_Rep1",
+                    "MDAMB231_Rep2",
+                    "MDAMB231_Rep3",
+                    "MDAMB231_Rep4")
+trig_df$Accession<- trig_clean$Accession
+trig_df<- trig_df[,c(17,1:16)]
+trig_df$Description<- trig_clean$Description
+
+
+#HCC1806 mean and sd
+
+trig_df$hcc1806_mean<- rowMeans(trig_df[,c(2:5)])
+trig_df$hcc1806_sd<-apply(trig_df[,2:5], 1, sd)
+#MCF7 mean and sd
+
+trig_df$mcf7_mean<- rowMeans(trig_df[,c(10:13)])
+trig_df$mcf7_sd<-apply(trig_df[,10:13], 1, sd)
+
+#MDAMB231 mean and sd
+
+trig_df$mdam_mean<- rowMeans(trig_df[,c(14:17)])
+trig_df$mdam_sd<-apply(trig_df[,14:17], 1, sd)
+#MCF10A mean and sd
+
+trig_df$mcf10a_mean<- rowMeans(trig_df[,c(6:9)])
+trig_df$mcf10a_sd<-apply(trig_df[,6:9], 1, sd)
+
+
+#FC to MCF10A
+
+trig_df$mcf10_fc_mdamb231<- trig_df$mdam_mean/trig_df$mcf10a_mean
+trig_df$mcf10_fc_mcf7<- trig_df$mcf7_mean/trig_df$mcf10a_mean
+trig_df$mcf10_fc_hcc<- trig_df$hcc1806_mean/trig_df$mcf10a_mean
+
+
+
+
+```
+ 
+# Correlation plots
+
+```{r}
+#library(GGally)
+
+x_MCF10a<- trig_df[,c(6:9)]
+x_HCC1806<- trig_df[,c(2:5)]
+x_MCF7<- trig_df[,c(10:13)]
+x_MDAM<- trig_df[,c(14:17)]
+
+
+a
+b
+c
+d
+ggsave("GGpairs linear modeling MCF10A prot with TC.eps", a, device = "eps", height = 5, width = 5)
+ggsave("GGpairs linear modeling HCC1806 prot with TC.eps", b, device = "eps", height = 5, width = 5)
+ggsave("GGpairs linear modeling MCF7 prot with TC.eps", c, device = "eps", height = 5, width =5 )
+ggsave("GGpairs linear modeling MDAMB231 prot with TC.eps", d, device = "eps", height = 5, width =5 )
+
+trig_df_combine<- trig_df[,c(25,19,21,23)]
+
+e<-ggpairs(log2(trig_df_combine),
+        title = "Correlation between the replicate averages wtih TC",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("MCF10A", "HCC1806","MCF7", "MDAMB231"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+e
+
+ggsave("GGpairs linear modeling Subtype prot log2 with TC.eps", e, device = "eps", height = 5, width =5 )
+
+```
+
+## Linear Correlation between the averages of the 4 cell types 
+```{r}
+bc_df_combine<- bc_df[,c(41,23,29,35)]
+
+e<-ggpairs(log2(bc_df_combine),
+        title = "Correlation between the replicate averages",
+        xlab = "log2(Abundance)",
+        ylab = "log2(Abundance)",
+        columnLabels = c("MCF10A", "HCC1806","MCF7", "MDAMB231"),
+        upper = list(continuous = wrap('cor', size = 5)),
+        lower=list(continuous="smooth"))+
+  theme_bw()
+e
+
+ggsave("GGpairs linear modeling Subtype prot log2.eps", e, device = "eps", height = 5, width =5 )
+
+```
+
+ 
+ 
+# ANOVAs and Tukeys of entire spreadsheet
+```{r set up df}
+trig_df_2<- na.omit(trig_df)
+
+trig_df_2<- trig_df_2[,c(1:17)]
+
+trig_df_t<- as.data.frame(t(trig_df_2))
+
+colnames(trig_df_t)<- trig_df_t[1,]
+
+trig_df_t<- trig_df_t[-c(1),]
+
+trig_df_t$type<- rownames(trig_df_t)
+
+trig_df_t<- trig_df_t[,c(4312,1:4311)]
+
+trig_df_t$type<- gsub("\\_.*","", trig_df_t$type)
+
+```
+
+
+# TUKEY Analysis
+```{r Tukey analysis resulting in a df with all pairwise comparisons}
+#start off by doing anova on first entry in order to initiate the df with the proper column titles
+
+  anova <- aov(trig_df_t[,2] ~ type, data = trig_df_t)
+  tukey <- TukeyHSD(anova)
+  prot_pairwise<- as.data.frame(t(tukey$type[, "p adj"]))
+  rownames(prot_pairwise)<- colnames(trig_df_t[2])
+
+for (i in 3:ncol(trig_df_t)){
+  #Pull gene name from column heading
+  column <- names(trig_df_t[i])
+  #Run anova on the column against the type
+  anova <- aov(trig_df_t[,i] ~ type, data = trig_df_t)
+  #Run the tukey on the anova
+  tukey <- TukeyHSD(anova)
+  #Pull out the p value for every comparison and make it in a dataframe
+  y<- as.data.frame(t(tukey$type[, "p adj"]))
+  #put the rowname as the gene name
+  rownames(y)<- colnames(trig_df_t[i])
+  #combine with pre-initiated dataframe
+  prot_pairwise<- rbind(prot_pairwise,y)
+  #return the df
+}
+```
+# Creating df with FC's against each other and adding in p values and FDR adjust p values
+```{r FC}
+trig_df$fc_mdamb_v_mcf7<- trig_df$mdam_mean/trig_df$mcf7_mean
+
+trig_df$fc_mdamb_v_hcc<- trig_df$mdam_mean/trig_df$hcc1806_mean
+
+trig_df$fc_mdamb_v_mcf10<- trig_df$mdam_mean/trig_df$mcf10a_mean
+
+trig_df$fc_mcf7_v_hcc<- trig_df$mcf7_mean/trig_df$hcc1806_mean
+
+trig_df$fc_mcf7_v_mcf10<- trig_df$mcf7_mean/trig_df$mcf10a_mean
+
+trig_df$fc_hcc_v_mcf10<- trig_df$hcc1806_mean/trig_df$mcf10a_mean
+
+
+prot_pairwise$Accession<- rownames(prot_pairwise)
+
+trig_df<- inner_join(trig_df, prot_pairwise, by = "Accession")
+```
+
+
+# Statistical significant
+```{r creating mutant columns with up and down}
+
+#truncating df to both FC columns and padj columns
+
+trig_df<- trig_df%>%
+  mutate(p.t_mdam_mcf7= case_when(fc_mdamb_v_mcf7 > 1.2& `MDAMB231-MCF7`  <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf7 < 0.83 & `MDAMB231-MCF7` <=0.05 ~"Up in MCF7",
+                                 TRUE ~ "ns"))
+
+trig_df<- trig_df%>%
+  mutate(p.t_mdam_hcc= case_when(fc_mdamb_v_hcc > 1.2& `MDAMB231-HCC1806` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_hcc <0.83 & `MDAMB231-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+trig_df<- trig_df%>%
+  mutate(p.t_mdam_mcf10= case_when(fc_mdamb_v_mcf10 > 1.2& `MDAMB231-MCF10A` <=0.05 ~ "Up in MDAMB231",
+                                 fc_mdamb_v_mcf10 <0.83 & `MDAMB231-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+trig_df<- trig_df%>%
+  mutate(p.t_mcf7_hcc= case_when(fc_mcf7_v_hcc > 1.2 & `MCF7-HCC1806` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_hcc <0.83 & `MCF7-HCC1806` <=0.05 ~"Up in HCC1806",
+                                 TRUE ~ "ns"))
+trig_df<- trig_df%>%
+  mutate(p.t_mcf7_mcf10= case_when(fc_mcf7_v_mcf10 > 1.2& `MCF7-MCF10A` <=0.05 ~ "Up in MCF7",
+                                 fc_mcf7_v_mcf10 <0.83 & `MCF7-MCF10A` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+trig_df<- trig_df%>%
+  mutate(p.t_hcc_mcf10= case_when(fc_hcc_v_mcf10 > 1.2& `MCF10A-HCC1806` <=0.05 ~ "Up in HCC1806",
+                                 fc_hcc_v_mcf10 <0.83 & `MCF10A-HCC1806` <=0.05 ~"Up in MCF10A",
+                                 TRUE ~ "ns"))
+
+trig_df%>%
+  count(p.t_mdam_mcf7)
+trig_df%>%
+  count(p.t_mdam_hcc)
+trig_df%>%
+  count(p.t_mdam_mcf10)
+trig_df%>%
+  count(p.t_mcf7_hcc)
+trig_df%>%
+  count(p.t_mcf7_mcf10)
+trig_df%>%
+  count(p.t_hcc_mcf10)
+
+#Writing a csv
+#write.csv(trig_df, "Trigger_channel_prot_stats_combined reps.csv")
+```
+
+

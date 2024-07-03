@@ -1,0 +1,416 @@
+---
+title: "TNBC script TMT"
+author: "Christine Berryhill"
+date: "2022-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+#library(rstudioapi)
+library(stringr)
+library(dplyr)
+library(stringi)
+
+PeptideSummary<- read.csv("Input/Trigger.channel.PeptideSummary.csv")
+
+PeptideSummary<- PeptideSummary[,-c(54:76)]
+```
+
+
+# isolating the PTM sites in the peptide summary 
+
+```{r}
+#selects only peptides with a modification in them
+peptidea<- filter(PeptideSummary, Modifications.in.Master.Proteins !="")
+
+#split up modifications into the max number of modification on a peptide, this case 7 
+#run table(modsa$V7) to see if there are any entries in that column
+modsa<- as.data.frame(str_split_fixed(peptidea$Modifications.in.Master.Proteins, ";", 4))
+
+
+#split up all columns for further filtering
+
+for (i in modsa[,1:4]) {
+  
+  a<- as.data.frame(str_split_fixed(i, " ",4))
+  
+  modsa<- cbind(modsa, a)
+  
+}
+#merge back with peptide files
+
+peptide_mergea<- cbind(peptidea, modsa)
+
+
+#subsetting out the rows with sites that have a second site or more from the same protein (second position) (the 3rd V2 Second split off position)
+tomatch<- c("1x", "2x", "3x","4x", "K")
+
+subseta<- peptide_mergea [grep(paste(tomatch, collapse = "|"), peptide_mergea[,c(69)]),]
+#shortening subset df to get rid of all the split up methyl stuff
+subseta<- as.data.frame(subseta[,-c(60:63)])
+#subset out duplicates 
+
+#dividing out rows that have methyl groups in the 2nd position in order to separate them out further (third and fourth positions)
+subset1xa<- subseta[grepl("1x", subseta$V2.1),]
+subset2xa<- subseta[grepl("2x", subseta$V2.1),]
+subset3xa<- subseta[grepl("3x", subseta$V2.1),]
+
+
+```
+#Second position and on formatting
+```{r 1x sites in the second position and on}
+#Start with 1x
+
+#Now to format 
+#format subset position 2 for 1x
+subset1xa$V1.1<- paste(subset1xa$V1)
+#Get rid of position 1
+subset1xa<- subset1xa[,-c(60:63)]
+
+# now 2nd position is in the first and final position. 
+
+#NEXT
+
+#looking at the third position when the second position is a monomethyl group
+subset1xa_subset1xa<-subset1xa[grepl("1x", subset1xa$V2.2),]
+subset1xa_subset2xa<-subset1xa[grepl("2x", subset1xa$V2.2),]
+subset1xa_subset3xa<-subset1xa[grepl("3x", subset1xa$V2.2),]
+
+#NEXT. 3rd position
+#subsetting out the 1x in the 3rd position
+subset1xa_subset1xa$V1.2<-subset1xa_subset1xa$V1.1
+subset1xa_subset1xa<- subset1xa_subset1xa[,-c(60:63)]
+
+#subsetting out the 2x in the 3rd position
+subset1xa_subset2xa$V1.2<-subset1xa_subset2xa$V1.1
+subset1xa_subset2xa<- subset1xa_subset2xa[,-c(60:63)]
+
+#Continuing the 2x position
+subset1xa_subset2xa$V4.2<-subset1xa_subset2xa$V1.2
+subset1xa_subset2xa$V1.3<-subset1xa_subset2xa$V2.2
+subset1xa_subset2xa_a<- subset1xa_subset2xa[,-c(60:62)]
+
+#DONE
+
+#MAKE SURE THERE ARE NO 2x or 3x in the 4th position (V2.2) from subset 1x_1x. If there are, continue to subset and format
+
+
+
+#FINALLY
+#combine: subset1xa., and subset1xa_1x, etc.. And any other df. Must have the same column names
+#then combine to peptide_merge
+
+subset1xa<- subset1xa[,c(1:62)]
+subset1xa_subset1xa<- subset1xa_subset1xa[,c(1:62)]
+subset1xa_subset2xa<- subset1xa_subset2xa[,c(1:62)]
+subset1xa_subset2xa_a<-subset1xa_subset2xa_a[,c(1:62)]
+
+colnames(subset1xa)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset1xa_subset1xa)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset1xa_subset2xa)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset1xa_subset2xa_a)[c(60:62)]<- c("V1","V2","V3")
+
+
+subset1xa_new<- rbind(subset1xa,
+                      subset1xa_subset1xa,
+                      #subset1xa_subset1xa_subset1xa,
+                      #subset1xa_subset1xa_subset1xa_subset1xa,
+                      #subset1xa_subset1xa_subset1xa_subset1xa_subset1xa,
+                      #subset1xa_subset1xa_subset1xa_subset1xa_subset1xa_subset1xa,
+                      subset1xa_subset2xa,
+                      subset1xa_subset2xa_a)
+
+
+#DONE EXTRAPOLATING all methyl sites from the 1x from the second position. 1.30.24
+```
+
+```{r 2x sites from the second position and on}
+subset2xa$V1.1<- subset2xa$V1
+#get rid of first position. 
+
+subset2xa<- subset2xa[,-c(60:63)]
+
+#Now 2nd position is in the first position.
+#DONE WITH SECOND POSITION
+
+#copy U1 and methyl state to the third position
+
+subset2xa$V4.1<- subset2xa$V1.1
+subset2xa$V1.2<- subset2xa$V2.1
+subset2xa_a<- subset2xa[,-c(60:62)]
+
+
+#4th position
+subset2xa_1x<-subset2xa_a[grepl("1x", subset2xa_a$V2.2),]
+subset2xa_1x<- subset2xa_1x[,-c(61)]
+
+
+#Combine
+
+
+subset2xa<- subset2xa[,c(1:62)]
+subset2xa_a<- subset2xa_a[,c(1:62)]
+subset2xa_1x<-subset2xa_1x[,c(1:62)]
+
+colnames(subset2xa)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset2xa_a)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset2xa_1x)[c(60:62)]<- c("V1","V2","V3")
+
+subset2xa_new<- rbind(subset2xa, 
+                      subset2xa_a,
+                      subset2xa_1x )
+
+#Done 1.31.24
+
+```
+
+```{r 3x sites from the 2nd position and on}
+#If there is anything in subset3xa, continue the same pattern of subsetting. 
+#Start with 1x
+
+#Now to format 
+#format subset position 2 for 1x
+subset3xa$V1.1<- paste(subset3xa$V1)
+subset3xa<- subset3xa[,-c(60:63)]
+
+# now 3rd position
+subset3xa$V4.1<- paste(subset3xa$V1.1)
+subset3xa$V1.2<- paste(subset3xa$V2.1)
+subset3xa_a<- subset3xa[,-c(60:62)]
+
+#4th position
+subset3xa_a_a<-subset3xa_a[grepl("K", subset3xa_a$V2.3),]
+
+#NEXT. 3rd position. There was one in the 1x position. But it's an Arginine, so ignore
+#Combine
+
+
+subset3xa<- subset3xa[,c(1:62)]
+subset3xa_a<- subset3xa_a[,c(1:62)]
+#subset3xa_a_a<-subset3xa_a_a[,c(1:46)]
+
+colnames(subset3xa)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset3xa_a)[c(60:62)]<- c("V1","V2","V3")
+#colnames(subset3xa_a_a)[c(60:62)]<- c("V1","V2","V3")
+
+subset3xa_new<- rbind(subset3xa, 
+                      subset3xa_a )
+
+
+#Done. 1.31.24
+```
+
+#Formatting special first position cases
+```{r  2x in the first position }
+#Subset 2x
+subset_2times<- subseta[grepl("2x", subseta$V2),]
+
+subset_2times$V4<- subset_2times$V1
+subset_2times$V1.1<- subset_2times$V2
+subset_2times<- subset_2times[,-c(60:62)]
+#NEW. ADDED 11.27.23. NEED TO GO BACK AND ADD THIS TO PREVIOUS ITERATIONS. THIS GETS RID OF DUPLICATES
+subset_2times<-subset_2times[grepl("K", subset_2times$V2.1),]
+#Now the 2nd position is in the first position. 
+#Second position DONE.
+
+#Moving on to look at the 3rd position
+#1x
+subset_2times_1x<-subset_2times[grepl("1x", subset_2times$V2.2),]
+subset_2times_2x<-subset_2times[grepl("2x", subset_2times$V2.2),]
+subset_2times_3x<-subset_2times[grepl("3x", subset_2times$V2.2),]
+
+#for 1x, just get rid of column V1.1.
+subset_2times_1x$V1.2<- subset_2times_1x$V4
+subset_2times_1x<- subset_2times_1x[,-c(60:64)]
+
+
+#Combined subset2_times, _1x, _1x_1x,
+subset_2times<- subset_2times[,c(1:62)]
+subset_2times_1x<- subset_2times_1x[,c(1:62)]
+
+colnames(subset_2times)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset_2times_1x)[c(60:62)]<- c("V1","V2","V3")
+
+
+subset_2times_new<- rbind(subset_2times,
+                          subset_2times_1x)
+
+#DONE. 1.31.24
+
+```
+
+```{r 3x in the first position}
+#3x in the 1st position. 
+subset_3times<- subseta[grepl("3x", subseta$V2),]
+subset_3times$V4<- subset_3times$V1
+subset_3times$V1.1<- subset_3times$V2
+subset_3times<- subset_3times[,-c(60:62)]
+#NEW. ADDED 11.27.23. NEED TO GO BACK AND ADD THIS TO PREVIOUS ITERATIONS. THIS GETS RID OF DUPLICATES
+subset_3times<-subset_3times[grepl("K", subset_3times$V2.1),]
+
+#Another one
+subset_3times_a<- subset_3times[grepl("K", subset_3times$V2.2),]
+subset_3times_a$V4.1<- subset_3times_a$V4
+subset_3times_a$V1.2<- subset_3times_a$V1.1
+subset_3times_a<- subset_3times_a[,-c(60:63)]
+
+#Putting it all together
+subset_3times<- subset_3times[,c(1:62)]
+subset_3times_a<- subset_3times_a[,c(1:62)]
+
+colnames(subset_3times)[c(60:62)]<- c("V1","V2","V3")
+colnames(subset_3times_a)[c(60:62)]<- c("V1","V2","V3")
+
+subset_3times_new<- rbind(subset_3times,
+                          subset_3times_a)
+
+#1.31.24
+```
+
+#run table(mods[,9]) to see if there is a 4x methyl in 
+```{r 4x in the first position}
+#4x in the 1st position. 
+subset_4times<- subseta[grepl("4x", subseta$V2),]
+subset_4times$V4<- subset_4times$V1
+subset_4times$V1.1<- subset_4times$V2
+subset_4times<- subset_4times[,-c(55:57)]
+
+#Another one
+subset_4times_a<- subset_4times[grepl("K", subset_4times$V2.2),]
+subset_4times_a$V4.1<- subset_4times_a$V4
+subset_4times_a$V1.2<- subset_4times_a$V1.1
+subset_4times_a<- subset_4times_a[,-c(55:58)]
+
+#4x_1x_1x
+
+subset_4times_a_1x<-subset_4times_a[grepl("1x", subset_4times_a$V2.3),]
+subset_4times_a_1x$V1.3<- subset_4times_a_1x$V4.1
+subset_4times_a_1x<- subset_4times_a_1x[,-c(55:59)]
+
+
+
+#Putting it all together
+subset_4times<- subset_4times[,c(1:57)]
+subset_4times_a<- subset_4times_a[,c(1:57)]
+subset_4times_a_1x<- subset_4times_a_1x[,c(1:57)]
+
+colnames(subset_4times)[c(55:57)]<- c("V1","V2","V3")
+colnames(subset_4times_a)[c(55:57)]<- c("V1","V2","V3")
+colnames(subset_4times_a_1x)[c(55:57)]<- c("V1","V2","V3")
+
+subset_4times_new<- rbind(subset_4times,
+                          subset_4times_a,
+                          subset_4times_a_1x)
+
+#4.26.23
+#No need. 1.31.23
+
+```
+
+```{r combining everything}
+#Combine everything in the 2nd, 3rd, and 4th positions with peptide merge.
+#Continue onto formatting
+
+further_positions<- rbind(subset_2times_new,
+                          subset_3times_new,
+                          subset1xa_new,
+                          subset2xa_new,
+                          subset3xa_new)
+
+#delete the first V1-VX
+peptide_mergea<- peptide_mergea[,-c(60:63)]
+
+peptide_mergea<- peptide_mergea[,c(1:62)]
+
+peptide_mergea<- rbind(peptide_mergea, further_positions)
+
+```
+
+#Finishing up formatting
+```{r Finishing up formatting }
+
+#getting rid of the 1x, 2x, and 3x
+peptide_mergea$V2<- str_replace(peptide_mergea$V2, ".*x", "")
+
+peptide_merge_new<- peptide_mergea
+
+#Splitting up V3 into Position and confidence score
+
+peptide_merge_new[c("Position", "Confidence")]<- str_split_fixed(peptide_merge_new$V3, "\\(",2)
+
+#Cleaning up the special characters
+peptide_merge_new$Position<- str_replace(peptide_merge_new$Position, "\\[", "")
+peptide_merge_new$Confidence<- str_replace(peptide_merge_new$Confidence, "\\)\\]", "")
+peptide_merge_new$Confidence<- str_replace(peptide_merge_new$Confidence, "\\)", "")
+
+#Making confidence score a numeric vector
+peptide_merge_new$Confidence<- as.numeric(as.character(peptide_merge_new$Confidence))
+
+#splitting up the Ks and Rs from the amino acid number
+peptide_merge_new$Target.Amino.Acid<- substring(peptide_merge_new$Position,1, 1)
+
+peptide_merge_new$Position<- str_sub(peptide_merge_new$Position, 2, -1)
+
+#Getting rid of the intermediate column (V3)
+peptide_merge_new<- peptide_merge_new[,-c(62)]
+```
+
+#Creating the Formats (1-4)
+  #paste uniprot- KXXX-mY
+  #filter by unique values
+```{r Splitting up into the three methyl df}
+
+Methyl <- peptide_merge_new[grep("\\QMethyl\\E", peptide_merge_new$V2),]
+  
+Dimethyl<- peptide_merge_new[grep("\\QDimethyl\\E", peptide_merge_new$V2),]
+
+Trimethyl<- peptide_merge_new[grep("\\QTrimethyl\\E", peptide_merge_new$V2),]
+
+#First Methyl
+Methyl$Methyl_state<- "m1"
+
+#Next Dimethyl
+Dimethyl$Methyl_state<- "m2"
+
+
+#Finally Trimethyl
+Trimethyl$Methyl_state<- "m3"
+
+#Making df to use.
+
+methylation<- rbind(Methyl, Dimethyl, Trimethyl)
+
+methylation<- methylation%>%
+  filter(Target.Amino.Acid == "K")
+
+methylation<- methylation %>%
+  distinct(.keep_all = TRUE)
+
+#rename V1
+colnames(methylation)[c(60)]<- "U1"
+
+#look into NAs to determine ambiguity
+
+
+methylation$Format2<- paste0(methylation$U1, "-",methylation$Target.Amino.Acid, methylation$Position)
+methylation$Format3<- paste0(methylation$Format2, "-", methylation$Methyl_state)
+
+```
+
+#write.csv
+```{r}
+
+methylation_new<- methylation%>%
+  filter(Confidence >= 90)
+
+write.csv(methylation_new, "TriggerChannel_methylsites_detected.csv")
+
+#Detected 331 Kme sites
+```
+
+
